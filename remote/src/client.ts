@@ -146,7 +146,9 @@ export class RemoteClient {
     }
 
     private connectDirect(peer: Peer) {
-        const conn = peer.connect(this.pairing.peerId, { serialization: 'json', reliable: true });
+        // 'binary' splits large messages (catalog pages) into chunks; PeerJS's 'json' mode drops
+        // anything over ~16 KB without a word.
+        const conn = peer.connect(this.pairing.peerId, { serialization: 'binary', reliable: true });
         this.conn = conn;
         // The PC answered through the broker, but no direct path was found:
         // typically Wi-Fi client isolation in hotels or guest networks.

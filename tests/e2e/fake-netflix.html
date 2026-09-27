@@ -25,18 +25,28 @@
                 }),
             );
         } else {
-            const card = (id, name) => `<div class="slider-item"><div class="title-card-container"><div class="title-card">
-                <a href="/watch/${id}?tctx=0" aria-label="${name}"><div class="boxart-container"><img class="boxart-image" src="${img(name)}"></div></a>
+            // Real boxart URLs are long signed CDN links; they make the catalog big enough to need relay chunking.
+            const boxart = (id) => `https://occ-0-1234-5678.1.nflxso.net/dnm/api/v6/6gmvu2hxdfnQ55LZZjyzYR4kzGk/AAAABQ${id}${'x'.repeat(180)}.jpg?r=${'a'.repeat(40)}`;
+            const card = (id, name, real = false) => `<div class="slider-item"><div class="title-card-container"><div class="title-card">
+                <a href="/watch/${id}?tctx=0" aria-label="${name}"><div class="boxart-container"><img class="boxart-image" src="${real ? boxart(id) : img(name)}"></div></a>
             </div></div></div>`;
-            const row = (title, items) => `<div class="lolomoRow" data-list-context="x"><h2 class="rowHeader"><div class="row-header-title">${title}</div></h2>${items.map(([id, n]) => card(id, n)).join('')}</div>`;
+            // The account menu in the header offers a profile switcher on every browse page.
+            const header = `<div class="pinning-header"><div class="account-menu"><ul class="sub-menu">
+                <li class="sub-menu-item profile-link"><a data-uia="profile-link" href="/SwitchProfile?tkn=1">Marcus</a></li>
+                <li class="sub-menu-item profile-link"><a data-uia="profile-link" href="/SwitchProfile?tkn=2">Kinder</a></li>
+            </ul></div></div>`;
+            const row = (title, items, real = false) => `<div class="lolomoRow" data-list-context="x"><h2 class="rowHeader"><div class="row-header-title">${title}</div></h2>${items.map(([id, n]) => card(id, n, real)).join('')}</div>`;
             if (path.startsWith('/search')) {
                 const q = params.get('q');
                 document.body.innerHTML = `<div class="search-gallery">${card('7001', q + ' – Film')}${card('7002', q + ' – Serie')}</div>`;
             } else {
+                const filler = (r) => Array.from({ length: 30 }, (_, i) => [`${60000 + r * 100 + i}`, `Titel ${r}-${i}`]);
                 document.body.innerHTML =
+                    header +
                     `<div class="billboard-row"><a href="/watch/1" aria-label="Abspielen">Abspielen</a></div>` +
                     row('Weiterschauen', [['80100172', 'Dark'], ['80057281', 'Stranger Things']]) +
-                    row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Squid Game']]);
+                    row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Squid Game']]) +
+                    [1, 2, 3, 4, 5].map((r) => row(`Reihe ${r}`, filler(r), true)).join('');
                 if (params.has('jbv')) {
                     document.body.insertAdjacentHTML('beforeend', `
                         <div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">

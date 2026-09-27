@@ -164,3 +164,7 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 32px; }
 .episode { display: flex; gap: 12px; width: 100%; padding: 0; border: 0; background: none; color: var(--fg); text-align: left; font: inherit; }
 .episode-text { display: grid; gap: 4px; align-content: start; }
 .episode-text .muted { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; }
+
+.link { border: 0; background: none; color: var(--muted); text-decoration: underline; font: inherit; font-size: 13px; }
+.diagnose { display: grid; gap: 8px; width: 100%; }
+.diagnose textarea { width: 100%; background: var(--surface); color: var(--fg); border: 0; border-radius: 10px; padding: 10px; font: 11px/1.4 ui-monospace, monospace; }

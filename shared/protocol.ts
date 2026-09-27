@@ -36,7 +36,8 @@ export type CatalogCommand =
     | { type: 'catalog.profile'; index: number }
     | { type: 'catalog.search'; q: string }
     | { type: 'catalog.nav'; section: CatalogSection }
-    | { type: 'catalog.back' };
+    | { type: 'catalog.back' }
+    | { type: 'catalog.debug' };
 
 export type Command = PlayerCommand | AppCommand | CatalogCommand;
 
@@ -200,6 +201,7 @@ export function parseCommand(x: unknown): Command | null {
         case 'app.browse':
         case 'catalog.loadMore':
         case 'catalog.back':
+        case 'catalog.debug':
             return { type: x.type };
         case 'catalog.get':
             return isInt(x.offset, 0, 500) && isInt(x.limit, 1, 20)

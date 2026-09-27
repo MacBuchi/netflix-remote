@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Opener, pcTopic, phoneTopic, relayKeys, seal } from '../../shared/relay';
+import { Opener, chunk, parseChunk, pcTopic, phoneTopic, relayKeys, seal } from '../../shared/relay';
 
 const PEER = 'nfr-0123456789abcdef01234567';
 const KEY = '0123456789abcdef0123456789abcdef';
@@ -39,5 +39,25 @@ describe('relay encryption', () => {
         const old = await seal(k, { ts: Date.now() - 10 * 60 * 1000, msg: 1 });
         expect(await opener.open(old)).toBeNull();
         expect(await opener.open('not base64 at all!')).toBeNull();
+    });
+});
+
+describe('relay chunking', () => {
+    it('keeps small messages whole and splits large ones into ordered parts', () => {
+        expect(chunk('abc', 10)).toEqual(['abc']);
+        const big = 'x'.repeat(25) + 'y'.repeat(10);
+        const parts = chunk(big, 10);
+        expect(parts).toHaveLength(4);
+        const parsed = parts.map((p) => parseChunk(p)!);
+        expect(parsed.map((p) => `${p.index}/${p.total}`)).toEqual(['0/4', '1/4', '2/4', '3/4']);
+        expect(new Set(parsed.map((p) => p.id)).size).toBe(1);
+        expect(parsed.map((p) => p.data).join('')).toBe(big);
+    });
+
+    it('does not mistake sealed messages or garbage for chunks', async () => {
+        const k = await relayKeys(PEER, KEY);
+        expect(parseChunk(await seal(k, { ts: Date.now(), msg: 1 }))).toBeNull();
+        expect(parseChunk('c1|x|5|2|data')).toBeNull();
+        expect(parseChunk('c1|x|a|2|data')).toBeNull();
     });
 });
