@@ -36,7 +36,7 @@ header select { background: transparent; color: var(--fg); border: 0; font: inhe
 
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); flex: none; }
 .dot.connected { background: var(--ok); }
-.dot.pc-offline, .dot.broker-offline, .dot.auth-failed { background: var(--accent); }
+.dot.pc-offline, .dot.p2p-failed, .dot.broker-offline, .dot.auth-failed { background: var(--accent); }
 
 main { flex: 1; display: flex; flex-direction: column; padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; }

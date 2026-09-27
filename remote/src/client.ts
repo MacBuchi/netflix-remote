@@ -14,7 +14,7 @@ import {
     type RemoteState,
 } from '../../shared/protocol';
 
-export type ConnStatus = 'connecting' | 'connected' | 'pc-offline' | 'broker-offline' | 'auth-failed';
+export type ConnStatus = 'connecting' | 'connected' | 'pc-offline' | 'p2p-failed' | 'broker-offline' | 'auth-failed';
 
 export interface ClientSnapshot {
     status: ConnStatus;
@@ -101,9 +101,17 @@ export class RemoteClient {
         this.conn = conn;
         conn.on('open', () => this.send({ v: PROTOCOL_VERSION, type: 'hello', key: this.pairing.key, device: this.device }));
         conn.on('data', (data) => this.handle(data as PcMsg));
+        // The PC answered through the broker, but no direct WebRTC path was found
+        // (typically Wi-Fi client isolation in hotels or guest networks).
+        let blocked = false;
+        conn.on('error', (err) => {
+            if (err.type === 'negotiation-failed') blocked = true;
+        });
         conn.on('close', () => {
             if (this.stopped || this.conn !== conn) return;
-            if (this.snapshot.status !== 'auth-failed') this.set({ status: 'pc-offline' });
+            if (this.snapshot.status !== 'auth-failed') {
+                this.set({ status: blocked ? 'p2p-failed' : 'pc-offline', error: blocked ? 'negotiation-failed' : null });
+            }
             this.scheduleRetry();
         });
     }

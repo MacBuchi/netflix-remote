@@ -166,6 +166,8 @@ const STATUS_TEXT: Record<ClientSnapshot['status'], string> = {
     connecting: 'Verbinde …',
     connected: 'Verbunden',
     'pc-offline': 'PC nicht erreichbar. Läuft Chrome auf dem PC?',
+    'p2p-failed':
+        'PC gefunden, aber das WLAN blockiert die direkte Verbindung zwischen den Geräten (typisch für Hotel- und Gäste-WLAN). Abhilfe: PC mit dem Hotspot des Handys verbinden.',
     'broker-offline': 'Keine Verbindung zum Vermittlungs-Server. Internet am Handy prüfen.',
     'auth-failed': 'Kopplung ungültig.',
 };
