@@ -25,8 +25,12 @@ npm run build:ext
 Dann `chrome://extensions` öffnen → „Entwicklermodus“ einschalten → „Entpackte Erweiterung laden“ →
 Ordner `extension/dist` wählen.
 
-Ohne eigenen Build: Im Tab „Actions“ des Repos beim letzten CI-Lauf das Artefakt
-`couch-remote-extension` herunterladen, entpacken und diesen Ordner laden.
+Ohne eigenen Build: Unter [Releases](https://github.com/MacBuchi/netflix-remote/releases/latest)
+die ZIP-Datei herunterladen, entpacken und diesen Ordner laden. Für ein Update den neuen Ordner an
+dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.
+
+Neue Version veröffentlichen: `version` in `extension/static/manifest.json` erhöhen, mergen, dann
+`git tag vX.Y.Z && git push origin vX.Y.Z` – der Workflow „Release“ baut und veröffentlicht die ZIP.
 
 ### 2. Handy-App veröffentlichen (einmalig)
 
