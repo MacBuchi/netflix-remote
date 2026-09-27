@@ -5,7 +5,7 @@ steuert nicht nur den Player (Play/Pause, Spulen, Lautstärke, Untertitel …), 
 auch den **Katalog**: Zeilen durchblättern, Titel ansehen, suchen, Profil wählen und
 einen Film/eine Folge starten.
 
-> **Stand (Version 2.2.6):** Phasen 0–3 sind umgesetzt und mit echtem Netflix getestet (Kopplung,
+> **Stand (Version 2.2.7):** Phasen 0–3 sind umgesetzt und mit echtem Netflix getestet (Kopplung,
 > Relay im Hotel-WLAN, Player, Film-Browser mit Bildern, Vorschau, Suche und Bereichen). Offen sind
 > nur noch optionale Punkte, siehe [Abschnitt 5](#5-umsetzung-in-phasen). Wo die Umsetzung vom
 > ursprünglichen Plan abweicht, ist es in den Abschnitten vermerkt.
@@ -257,7 +257,8 @@ Jede Anfrage bekommt eine Antwort (`ok`/`error`), die App zeigt Fehler verständ
 | 6 – Optional | offen |
 
 Zusätzlich umgesetzt: Bewertungen von IMDb, Rotten Tomatoes und Metacritic über OMDb, mit eigenem Schlüssel
-pro Nutzer (Einstellungen in der Handy-App; kein gemeinsamer Schlüssel, kein eigener Server).
+pro Nutzer (Einstellungen in der Handy-App; kein gemeinsamer Schlüssel, kein eigener Server); Zuordnung
+Netflix-ID → IMDb-ID über Wikidata. Außerdem: Wiedergabe-Tempo und Ton der Trailer-Vorschauen vom Handy.
 
 **Offen / nächste Schritte:**
 - Optional: D-Pad-Modus als Fallback (Phase 4).

@@ -4,8 +4,15 @@ import { openSettings, useRatings, type Kind } from './ratings';
 
 const decimal = (v: string) => v.replace('.', ',');
 
-export function RatingsRow({ title, kind, hint = false }: { title: string | null | undefined; kind?: Kind; hint?: boolean }) {
-    const { ratings, error, enabled } = useRatings(title, kind);
+export function RatingsRow({ title, id, kind, hint = false, showMissing = false }: {
+    title: string | null | undefined;
+    /** Netflix id; mapped to the IMDb id via Wikidata, which also finds localized titles. */
+    id?: string | null;
+    kind?: Kind;
+    hint?: boolean;
+    showMissing?: boolean;
+}) {
+    const { ratings, error, enabled, done } = useRatings(title, kind, id);
     if (!enabled) {
         return hint ? (
             <button class="link ratings-note" onClick={openSettings}>
@@ -21,7 +28,8 @@ export function RatingsRow({ title, kind, hint = false }: { title: string | null
         );
     }
     if (error === 'limit') return <p class="ratings-note">OMDb-Tageslimit erreicht, morgen wieder.</p>;
-    if (!ratings) return null;
+    if (error === 'network') return showMissing ? <p class="ratings-note">Bewertungen gerade nicht erreichbar.</p> : null;
+    if (!ratings) return showMissing && done ? <p class="ratings-note">Keine Bewertungen gefunden.</p> : null;
     const imdbUrl = ratings.imdbId ? `https://www.imdb.com/title/${ratings.imdbId}/` : undefined;
     return (
         <div class="ratings" aria-label="Bewertungen">

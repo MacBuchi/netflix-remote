@@ -16,6 +16,14 @@ describe('parseCommand', () => {
         expect(parseCommand({ type: 'app.fullscreen', on: true })).toEqual({ type: 'app.fullscreen', on: true });
     });
 
+    it('accepts playback speed and preview sound within limits', () => {
+        expect(parseCommand({ type: 'player.setRate', rate: 1.254 })).toEqual({ type: 'player.setRate', rate: 1.25 });
+        expect(parseCommand({ type: 'player.setRate', rate: 10 })).toBeNull();
+        expect(parseCommand({ type: 'player.setRate', rate: '2' })).toBeNull();
+        expect(parseCommand({ type: 'catalog.previewSound', muted: true })).toEqual({ type: 'catalog.previewSound', muted: true });
+        expect(parseCommand({ type: 'catalog.previewSound', muted: 'yes' })).toBeNull();
+    });
+
     it('strips unknown fields', () => {
         expect(parseCommand({ type: 'player.play', evil: 'x' })).toEqual({ type: 'player.play' });
     });

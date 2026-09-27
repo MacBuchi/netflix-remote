@@ -48,6 +48,8 @@
                     // Billboard: full-width recommendation with title logo; Netflix plays its trailer here.
                     `<div class="billboard-row"><div class="billboard billboard-pane">
                         <div class="hero-image-wrapper"><img class="hero static-image" src="${img('Hafenlichter', '80025678')}&hero=1"></div>
+                        <video class="billboard-motion"></video>
+                        <button class="global-supplemental-audio-toggle" data-uia="audio-toggle-unmuted" aria-label="Ton aus"></button>
                         <div class="billboard-title"><img class="title-logo" alt="Hafenlichter" src="${img('Hafenlichter', '80025678')}&logo=1"></div>
                         <div class="billboard-description"><div class="synopsis">Eine Hafenstadt, drei Familien und ein Geheimnis, das alles verändert.</div></div>
                         <div class="billboard-links"><a class="playLink" href="/watch/80025678?trackId=1"><button data-uia="play-button">Abspielen</button></a><button data-uia="billboard-more-info">Weitere Infos</button></div>
@@ -92,7 +94,16 @@
             getVolume: () => fake.vol, setVolume: (v) => (fake.vol = v), isMuted: () => fake.mute, setMuted: (m) => (fake.mute = m),
             getAudioTrackList: () => audio, getAudioTrack: () => fake.audio, setAudioTrack: (t) => (fake.audio = t),
             getTimedTextTrackList: () => text, getTimedTextTrack: () => fake.text, setTimedTextTrack: (t) => (fake.text = t),
+            setPlaybackRate: (r) => (fake.rate = r),
         };
+        // Trailer preview sound toggle, like Netflix's: flips the preview video and its own data-uia.
+        document.querySelectorAll('[data-uia^="audio-toggle"]').forEach((b) =>
+            b.addEventListener('click', () => {
+                const v = b.parentElement.querySelector('video');
+                v.muted = !v.muted;
+                b.dataset.uia = v.muted ? 'audio-toggle-muted' : 'audio-toggle-unmuted';
+            }),
+        );
         const isWatch = path.startsWith('/watch/');
         window.netflix = { appContext: { state: { playerApp: { getAPI: () => ({ videoPlayer: {
             getAllPlayerSessionIds: () => (isWatch ? ['watch-1'] : []),

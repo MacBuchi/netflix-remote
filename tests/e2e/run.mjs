@@ -49,7 +49,8 @@ const OMDB_TITLES = {
 };
 const omdb = (route) => {
     const p = new URL(route.request().url()).searchParams;
-    const found = p.get('i') ? { Title: 'Testfilm', imdbID: p.get('i'), imdbRating: '9.3' } : OMDB_TITLES[p.get('t')];
+    const byId = Object.values(OMDB_TITLES).find((t) => t.imdbID === p.get('i'));
+    const found = p.get('i') ? (byId ?? { Title: 'Testfilm', imdbID: p.get('i'), imdbRating: '9.3' }) : OMDB_TITLES[p.get('t')];
     const body =
         p.get('apikey') !== 'test-key'
             ? { Response: 'False', Error: 'Invalid API key!' }
@@ -57,6 +58,18 @@ const omdb = (route) => {
               ? { Response: 'True', ...found }
               : { Response: 'False', Error: 'Movie not found!' };
     return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+};
+
+// Stand-in for Wikidata: knows the IMDb id of the billboard title only (Netflix id → IMDb id).
+const WIKIDATA_IDS = { 80025678: 'tt9000002' };
+const wikidata = (route) => {
+    const nf = new URL(route.request().url()).searchParams.get('query')?.match(/P1874 "(\d+)"/)?.[1];
+    const imdb = WIKIDATA_IDS[nf];
+    return route.fulfill({
+        contentType: 'application/sparql-results+json',
+        headers: { 'access-control-allow-origin': '*' },
+        body: JSON.stringify({ results: { bindings: imdb ? [{ imdb: { value: imdb } }] : [] } }),
+    });
 };
 
 // Never fetch the Netflix CDN (CI has internet, real requests would stall page loads); for screenshots draw placeholders.
@@ -159,6 +172,7 @@ try {
     const phoneCtx = await phoneBrowser.newContext({ viewport: { width: 400, height: 860 }, isMobile: true, hasTouch: true });
     await phoneCtx.route('https://*.nflxso.net/**', cdn);
     await phoneCtx.route('https://www.omdbapi.com/**', omdb);
+    await phoneCtx.route('https://query.wikidata.org/**', wikidata);
     const phone = await phoneCtx.newPage();
     watched.phone = phone;
 
@@ -194,6 +208,14 @@ try {
         await phone.getByRole('button', { name: 'Lauter' }).click();
         await netflix.waitForFunction(() => Math.abs(window.fake.vol - 0.6) < 0.001);
         await phone.locator('.vol-num', { hasText: '60' }).waitFor();
+    });
+
+    await step('playback speed', async () => {
+        await phone.getByRole('button', { name: 'Geschwindigkeit 1,5×' }).click();
+        await netflix.waitForFunction(() => window.fake.rate === 1.5 && document.querySelector('video').playbackRate === 1.5);
+        await phone.locator('.speed-btn[aria-pressed="true"]', { hasText: '1,5×' }).waitFor({ timeout: 10_000 });
+        await phone.getByRole('button', { name: 'Geschwindigkeit 1×' }).click();
+        await netflix.waitForFunction(() => document.querySelector('video').playbackRate === 1);
     });
 
     await step('subtitle track', async () => {
@@ -266,12 +288,13 @@ try {
         await settings.getByLabel('OMDb-Schlüssel').fill('wrong');
         await settings.getByRole('button', { name: 'Speichern' }).click();
         await settings.getByText('nicht angenommen').waitFor();
-        await settings.getByLabel('OMDb-Schlüssel').fill('test-key');
-        await settings.getByRole('button', { name: 'Speichern & testen' }).click();
+        // Pasting the example link from OMDb's e-mail takes the key out of it and tests it right away.
+        await settings.getByLabel('OMDb-Schlüssel').fill('http://www.omdbapi.com/?i=tt3896198&apikey=test-key');
         // The function test answers with a real lookup; the sheet stays open to show it.
         await settings.getByRole('status').filter({ hasText: 'Funktioniert: „Testfilm“ – IMDb 9,3' }).waitFor();
         await settings.getByRole('link', { name: 'omdbapi.com/apikey.aspx' }).waitFor();
         await settings.getByRole('button', { name: 'Erneut testen' }).waitFor();
+        assert.equal(await settings.getByLabel('OMDb-Schlüssel').inputValue(), 'test-key');
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-settings.png') });
         await settings.getByRole('button', { name: 'Schließen' }).click();
         await settings.waitFor({ state: 'detached' });
@@ -284,10 +307,24 @@ try {
         await sheet.getByLabel('Metacritic 81 von 100').waitFor();
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-ratings.png') });
         await sheet.getByRole('button', { name: 'Schließen' }).click();
-        // The billboard shows what is known (no Metacritic for this one).
+        // The billboard is found via Wikidata (Netflix id → IMDb id) and shows what is known (no Metacritic).
         const hero = phone.getByRole('region', { name: 'Empfehlung: Hafenlichter' });
         await hero.getByLabel('Rotten Tomatoes 88%').waitFor({ timeout: 10_000 });
         assert.equal(await hero.getByText('MC').count(), 0);
+        // Unknown titles say so instead of showing nothing.
+        await phone.getByRole('button', { name: 'Rotes Licht' }).click();
+        await phone.getByRole('dialog', { name: 'Rotes Licht' }).getByText('Keine Bewertungen gefunden').waitFor({ timeout: 10_000 });
+        await phone.getByRole('dialog', { name: 'Rotes Licht' }).getByRole('button', { name: 'Schließen' }).click();
+    });
+
+    await step('catalog: the trailer preview sound can be switched from the phone', async () => {
+        const hero = phone.getByRole('region', { name: 'Empfehlung: Hafenlichter' });
+        await hero.getByRole('button', { name: 'Vorschau-Ton ausschalten' }).click();
+        await netflix.waitForFunction(() => document.querySelector('.billboard video').muted === true);
+        await hero.getByRole('button', { name: 'Vorschau-Ton einschalten' }).waitFor({ timeout: 10_000 });
+        await hero.getByRole('button', { name: 'Vorschau-Ton einschalten' }).click();
+        await netflix.waitForFunction(() => document.querySelector('.billboard video').muted === false);
+        await hero.getByRole('button', { name: 'Vorschau-Ton ausschalten' }).waitFor({ timeout: 10_000 });
     });
 
     await step('catalog: the billboard is shown on top and "Abspielen" starts it on the PC', async () => {

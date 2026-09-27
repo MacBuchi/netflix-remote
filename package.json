@@ -1,6 +1,6 @@
 {
   "name": "netflix-couch-remote",
-  "version": "2.2.6",
+  "version": "2.2.7",
   "private": true,
   "type": "module",
   "description": "Control Netflix in desktop Chrome from your Android phone: player and catalog.",

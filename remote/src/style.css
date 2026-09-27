@@ -94,6 +94,10 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 32px; }
 .vol-num { width: 32px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 .row .btn { flex: 1; justify-content: center; max-width: 240px; }
 
+.speed { display: flex; align-items: center; gap: 6px; }
+.speed-label { color: var(--muted); font-size: 13px; margin-right: 2px; }
+.speed-btn { flex: 1; min-width: 0; min-height: 40px; padding: 0; border: 0; border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; }
+.speed-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
 .tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tracks label { display: grid; gap: 4px; color: var(--muted); font-size: 13px; }
 .tracks select { min-height: 44px; background: var(--surface); color: var(--fg); border: 0; border-radius: 10px; padding: 0 10px; font: inherit; }
@@ -153,6 +157,8 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 32px; }
 .rating.imdb b { color: #f5c518; }
 .ratings-note { margin: 0; font-size: 13px; color: var(--muted); text-align: left; padding: 0; }
 .hero-ratings { margin: 0 16px; }
+.sound-btn { flex: none; width: 48px; height: 48px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--fg); display: grid; place-items: center; }
+.sound-btn.overlay { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; background: rgb(0 0 0 / 55%); border: 1px solid rgb(255 255 255 / 35%); }
 .hero-ratings:empty { display: none; }
 
 /* Settings */

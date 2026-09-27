@@ -26,11 +26,13 @@ kein eigener Server.
 - Bereiche Start, Serien, Filme, Neu und Meine Liste – der aktive Bereich ist rot markiert, auch wenn am PC navigiert wird
 - Suche über die Handy-Tastatur
 - Titel antippen → „Abspielen“ oder „Details & Folgen“ mit Beschreibung, Staffelwahl und Folgenliste
+- Ton der Trailer-Vorschauen (Empfehlung, Details) vom Handy aus- und einschalten
 - Optional Bewertungen von IMDb, Rotten Tomatoes und Metacritic (mit eigenem, kostenlosem OMDb-Schlüssel, siehe unten)
 - Bleibt die Übersicht leer: „Diagnose anzeigen“ zeigt, wie die Extension die Netflix-Seite sieht
 
 **Player**
 - Play/Pause, ±10 Sekunden, Zeitleiste zum Springen
+- Wiedergabe-Tempo 0,5× bis 2×
 - Lautstärke (Regler, Leiser/Lauter, Stumm)
 - Intro/Rückblick überspringen, nächste Folge
 - Tonspur und Untertitel wählen
@@ -93,12 +95,15 @@ dafür einen eigenen, kostenlosen Schlüssel (1.000 Abfragen pro Tag):
 2. Den Aktivierungslink in der E-Mail anklicken.
 3. In der Handy-App oben rechts auf das Zahnrad tippen, den Schlüssel eintragen und „Speichern & testen“ tippen.
    Die App schlägt zur Probe einen bekannten Film nach und meldet „✓ Funktioniert …“ oder, was nicht stimmt.
+   Einfacher: den Beispiel-Link aus der E-Mail (`…?i=tt3896198&apikey=…`) komplett einfügen – die App nimmt
+   den Schlüssel heraus und testet ihn sofort.
 
 Die Schritte und der Link zu OMDb stehen auch direkt in den Einstellungen der App.
 
 Die App fragt nur beim Öffnen eines Titels (Titel-Blatt, Details, Empfehlung) und merkt sich die Antworten
-eine Woche. Die Zuordnung läuft über den Titelnamen: Deutsche Netflix-Titel, die bei IMDb anders heißen,
-findet OMDb manchmal nicht, dann erscheint einfach keine Bewertung.
+eine Woche. Weil Netflix deutsche Titel zeigt, die bei IMDb oft anders heißen, ordnet die App zuerst über
+[Wikidata](https://www.wikidata.org/) die Netflix-Nummer der IMDb-Nummer zu; nur wenn Wikidata den Titel nicht
+kennt, sucht sie per Name. Findet sich nichts, steht dort „Keine Bewertungen gefunden“.
 
 <br clear="right">
 

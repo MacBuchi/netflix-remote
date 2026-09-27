@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchRatings, parseOmdb, setOmdbKey, testOmdbKey } from '../../remote/src/ratings';
+import { extractOmdbKey, fetchRatings, parseOmdb, setOmdbKey, testOmdbKey } from '../../remote/src/ratings';
 
 const FULL = {
     Response: 'True',
@@ -34,6 +34,18 @@ describe('parseOmdb', () => {
         expect(() => parseOmdb({ Response: 'False', Error: 'Invalid API key!' })).toThrow();
         expect(() => parseOmdb({ Response: 'False', Error: 'No API key provided.' })).toThrow();
         expect(() => parseOmdb({ Response: 'False', Error: 'Request limit reached!' })).toThrow();
+    });
+});
+
+describe('extractOmdbKey', () => {
+    it('takes the key from a pasted OMDb link or the e-mail text', () => {
+        expect(extractOmdbKey(' abcd1234 ')).toEqual({ key: 'abcd1234', fromUrl: false, activation: false });
+        expect(extractOmdbKey('http://www.omdbapi.com/?i=tt3896198&apikey=abcd1234')).toEqual({ key: 'abcd1234', fromUrl: true, activation: false });
+        expect(extractOmdbKey('Here is your key: abcd1234')).toMatchObject({ key: 'abcd1234', fromUrl: false });
+    });
+
+    it('recognizes the activation link, which is not the key', () => {
+        expect(extractOmdbKey('http://www.omdbapi.com/apikey.aspx?VERIFYKEY=1f2e3d4c-aaaa')).toMatchObject({ key: '', activation: true });
     });
 });
 
@@ -75,6 +87,28 @@ describe('fetchRatings', () => {
 
         fetchMock.mockResolvedValue({ json: async () => ({ Response: 'False', Error: 'Invalid API key!' }) });
         await expect(testOmdbKey('bad')).rejects.toBe('key');
+    });
+
+    it('maps the Netflix id to the IMDb id via Wikidata, so localized titles are found', async () => {
+        setOmdbKey('abc123');
+        fetchMock.mockImplementation(async (url: string) =>
+            url.startsWith('https://query.wikidata.org/')
+                ? { json: async () => ({ results: { bindings: [{ imdb: { value: 'tt6468322' } }] } }) }
+                : { json: async () => FULL },
+        );
+        expect((await fetchRatings('Haus des Geldes', 'series', '80192098'))?.imdb).toBe('8.8');
+        const wikidata = new URL(fetchMock.mock.calls[0][0]);
+        expect(wikidata.searchParams.get('query')).toContain('wdt:P1874 "80192098"');
+        expect(Object.fromEntries(new URL(fetchMock.mock.calls[1][0]).searchParams)).toEqual({ apikey: 'abc123', i: 'tt6468322' });
+    });
+
+    it('falls back to the title when Wikidata does not know the id', async () => {
+        setOmdbKey('abc123');
+        fetchMock.mockImplementation(async (url: string) =>
+            url.startsWith('https://query.wikidata.org/') ? { json: async () => ({ results: { bindings: [] } }) } : { json: async () => FULL },
+        );
+        expect((await fetchRatings('Inception', undefined, '70131314'))?.imdb).toBe('8.8');
+        expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get('t')).toBe('Inception');
     });
 
     it('caches misses too, but not errors', async () => {
