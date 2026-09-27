@@ -55,6 +55,12 @@ const phoneBrowser = await chromium.launch({ args: webrtcArgs });
 // A phone in a network that blocks direct connections: WebRTC may only use (non-existent) proxies.
 const hotelPhoneBrowser = await chromium.launch({ args: ['--force-webrtc-ip-handling-policy=disable_non_proxied_udp'] });
 
+async function newHotelPhone() {
+    const ctx = await hotelPhoneBrowser.newContext({ viewport: { width: 400, height: 860 } });
+    await ctx.route('https://*.nflxso.net/**', (route) => route.abort());
+    return ctx.newPage();
+}
+
 let failed = false;
 /** Pages whose visible text is printed when a step fails, to see what the user would have seen. */
 const watched = {};
@@ -75,6 +81,8 @@ const step = async (name, fn) => {
 
 try {
     await pc.route('https://www.netflix.com/**', (route) => route.fulfill({ contentType: 'text/html', body: fakeNetflix }));
+    // The fake catalog uses real-looking CDN image URLs; never fetch them (CI has internet, the images would stall page loads).
+    await pc.route('https://*.nflxso.net/**', (route) => route.abort());
 
     const sw = pc.serviceWorkers()[0] ?? (await pc.waitForEvent('serviceworker'));
     const extId = new URL(sw.url()).host;
@@ -102,6 +110,7 @@ try {
 
     const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker, r: config.relay })}`;
     const phoneCtx = await phoneBrowser.newContext({ viewport: { width: 400, height: 860 }, isMobile: true, hasTouch: true });
+    await phoneCtx.route('https://*.nflxso.net/**', (route) => route.abort());
     const phone = await phoneCtx.newPage();
     watched.phone = phone;
 
@@ -159,7 +168,7 @@ try {
     });
 
     await step('phone in a Wi-Fi that blocks direct connections works through the encrypted relay', async () => {
-        const hotel = await (await hotelPhoneBrowser.newContext({ viewport: { width: 400, height: 860 } })).newPage();
+        const hotel = await newHotelPhone();
         await hotel.goto(pairingUrl);
         await hotel.locator('.via', { hasText: 'Relay' }).waitFor({ timeout: 20_000 });
         await hotel.getByRole('heading', { name: 'Dark' }).waitFor({ timeout: 15_000 });
@@ -191,7 +200,7 @@ try {
     });
 
     await step('catalog also loads through the relay, in parts small enough for public brokers', async () => {
-        const hotel = await (await hotelPhoneBrowser.newContext({ viewport: { width: 400, height: 860 } })).newPage();
+        const hotel = await newHotelPhone();
         await hotel.goto(pairingUrl);
         await hotel.locator('.via', { hasText: 'Relay' }).waitFor({ timeout: 20_000 });
         await hotel.getByRole('heading', { name: 'Reihe 3' }).waitFor({ timeout: 20_000 });
@@ -203,7 +212,7 @@ try {
     await step('catalog: tapping a title and "Abspielen" starts it on the PC', async () => {
         await phone.getByRole('button', { name: 'Stranger Things' }).click();
         await phone.getByRole('dialog', { name: 'Stranger Things' }).getByRole('button', { name: 'Abspielen' }).click();
-        await netflix.waitForURL(/\/watch\/80057281/, { timeout: 10_000 });
+        await netflix.waitForURL(/\/watch\/80057281/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('button', { name: 'Pause' }).waitFor({ timeout: 10_000 });
     });
 
@@ -212,24 +221,24 @@ try {
         await phone.getByLabel('Suche').waitFor({ timeout: 15_000 });
         await phone.getByLabel('Suche').fill('Dark');
         await phone.getByLabel('Suche').press('Enter');
-        await netflix.waitForURL(/\/search\?q=Dark/, { timeout: 10_000 });
+        await netflix.waitForURL(/\/search\?q=Dark/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('button', { name: 'Dark – Serie' }).waitFor({ timeout: 15_000 });
     });
 
     await step('catalog: details with episodes, tapping an episode plays it', async () => {
         await phone.getByRole('button', { name: 'Dark – Serie' }).click();
         await phone.getByRole('button', { name: 'Details & Folgen' }).click();
-        await netflix.waitForURL(/jbv=7002/, { timeout: 10_000 });
+        await netflix.waitForURL(/jbv=7002/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByText('Ein Kind verschwindet.').waitFor({ timeout: 15_000 });
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-detail.png') });
         await phone.getByRole('button', { name: /2\. Lügen/ }).click();
-        await netflix.waitForURL(/\/watch\/90002/, { timeout: 10_000 });
+        await netflix.waitForURL(/\/watch\/90002/, { timeout: 10_000, waitUntil: 'commit' });
     });
 
     await step('catalog: section chips navigate the PC', async () => {
         await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click();
         await phone.getByRole('button', { name: 'Serien', exact: true }).click({ timeout: 15_000 });
-        await netflix.waitForURL(/\/browse\/genre\/83/, { timeout: 10_000 });
+        await netflix.waitForURL(/\/browse\/genre\/83/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('heading', { name: 'Serien-Tipps' }).waitFor({ timeout: 15_000 });
     });
 
