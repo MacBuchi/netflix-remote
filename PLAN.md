@@ -224,6 +224,7 @@ Jede Anfrage bekommt eine Antwort (`ok`/`error`), die App zeigt Fehler verständ
 | 0 – Aufräumen | ✅ erledigt |
 | 1 – Verbindung | ✅ erledigt (PeerJS statt Cloudflare Worker, siehe 2.2) |
 | 2 – Player | ✅ erledigt |
+| Relay für gesperrte WLANs | ✅ erledigt (verschlüsselter MQTT-Relay parallel zu WebRTC) |
 | 3 – Katalog | ⏭ als Nächstes |
 
 | Phase | Inhalt | Ergebnis |
@@ -248,7 +249,7 @@ Markennamen im Extension-Namen verwenden (z. B. „Couch Remote for Netflix“ o
 |--------|---------------|
 | Netflix ändert DOM/interne API | Alle Selektoren in einem Adapter, `data-uia` bevorzugen, Fallback-Kette (API → `data-uia`-Button → Tastatur-Event), Diagnose-Seite, Snapshot-Tests |
 | Autoplay/Vollbild ohne Nutzergeste blockiert | Fenster-Fullscreen via `chrome.windows`, notfalls `chrome.debugger`-Input |
-| P2P-Verbindung scheitert (z. B. Gäste-WLAN mit Client-Isolation) | STUN/TURN-Server aus der PeerJS-Standardkonfiguration |
+| P2P-Verbindung scheitert (z. B. Hotel-WLAN mit Client-Isolation) | Automatischer Relay über öffentlichen MQTT-Server, Ende-zu-Ende verschlüsselt; Relay-Server im Popup austauschbar |
 | Vermittlungsdienst weg (wie Heroku) | Vermittler im Popup konfigurierbar; `peerjs`-Server ist Open Source und selbst hostbar |
 | Sicherheit: Fremde steuern Netflix | Geheimer Pairing-Key, signierte Nachrichten, Befehle nur aus fester Whitelist |
 | Nutzungsbedingungen | Nur Steuerung der eigenen Sitzung, kein Umgehen von DRM, keine Video-Übertragung |

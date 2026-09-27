@@ -61,6 +61,8 @@ export interface HelloMsg {
     type: 'hello';
     key: string;
     device: string;
+    /** Random per app start; lets the PC see that a direct and a relay link belong to the same phone. */
+    phoneId: string;
 }
 export interface RequestMsg {
     v: number;
@@ -68,7 +70,12 @@ export interface RequestMsg {
     id: string;
     cmd: Command;
 }
-export type PhoneMsg = HelloMsg | RequestMsg;
+/** Relay keep-alive (the relay has no connection state) and polite goodbye. */
+export interface PingMsg {
+    v: number;
+    type: 'ping' | 'bye';
+}
+export type PhoneMsg = HelloMsg | RequestMsg | PingMsg;
 
 // PC -> phone
 export interface WelcomeMsg {
@@ -151,8 +158,10 @@ export function parsePhoneMsg(raw: unknown): PhoneMsg | null {
     }
     if (!isObj(x) || !isNum(x.v)) return null;
     if (x.type === 'hello' && isStr(x.key) && isStr(x.device)) {
-        return { v: x.v, type: 'hello', key: x.key, device: x.device };
+        const phoneId = isStr(x.phoneId, 64) && x.phoneId ? x.phoneId : 'unknown';
+        return { v: x.v, type: 'hello', key: x.key, device: x.device, phoneId };
     }
+    if (x.type === 'ping' || x.type === 'bye') return { v: x.v, type: x.type };
     if (x.type === 'request' && isStr(x.id, 64)) {
         const cmd = parseCommand(x.cmd);
         return cmd ? { v: x.v, type: 'request', id: x.id, cmd } : null;
@@ -169,12 +178,15 @@ export interface Pairing {
     name: string;
     /** Broker URL like "wss://0.peerjs.com:443/"; empty means the PeerJS default cloud. */
     broker: string;
+    /** MQTT relay URL for networks that block direct connections; empty means the default relay. */
+    relay: string;
 }
 
 /** Link encoded in the QR code. The secret lives in the hash so it never reaches the web server. */
 export function buildPairingUrl(remoteUrl: string, p: Pairing): string {
     const params = new URLSearchParams({ pc: p.peerId, k: p.key, n: p.name });
     if (p.broker) params.set('b', p.broker);
+    if (p.relay) params.set('r', p.relay);
     return `${remoteUrl.split('#')[0]}#${params.toString()}`;
 }
 
@@ -183,7 +195,13 @@ export function parsePairingHash(hash: string): Pairing | null {
     const peerId = params.get('pc');
     const key = params.get('k');
     if (!peerId || !key || !/^[A-Za-z0-9_-]{8,64}$/.test(peerId) || key.length < 16) return null;
-    return { peerId, key, name: params.get('n') || 'Netflix-PC', broker: params.get('b') || '' };
+    return {
+        peerId,
+        key,
+        name: params.get('n') || 'Netflix-PC',
+        broker: params.get('b') || '',
+        relay: params.get('r') || '',
+    };
 }
 
 export interface BrokerOptions {
