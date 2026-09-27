@@ -65,11 +65,11 @@ Eine Extension kann **keinen Port im LAN öffnen**. Daher gibt es drei Varianten
 | **B. Lokaler Hilfsserver + Native Messaging** (so macht es z. B. `Lmjfemc/netflix_remote_extension` mit einem Go-Binary) | Kleines Programm auf PC/Mac öffnet `http://<PC-IP>:8787`, spricht per Native Messaging mit der Extension | Kein Internet-Dienst nötig, rein lokal | Zusätzliche Installation pro Rechner (Mac + Windows Binaries, Registry/Manifest für Native Host), nur HTTP → keine vollwertige PWA, IP ändert sich |
 | **C. Reines Cloud-Relay** | Beide verbinden sich per WebSocket mit einem Relay, alle Befehle laufen darüber | Am einfachsten | Jeder Tastendruck geht über den Server |
 
-**Empfehlung: Variante A**, mit Relay-Fallback über denselben Dienst (wenn P2P mal scheitert).
-Im selben WLAN verbindet WebRTC direkt, Latenz praktisch null. Als Signaling-Dienst ein
-**Cloudflare Worker + Durable Object** (kostenloses Kontingent reicht locker) – ersetzt den
-toten Heroku-Broker. Variante B kann später optional ergänzt werden, falls „komplett ohne
-Internet“ gewünscht ist; das Protokoll (Abschnitt 4) ist transportunabhängig.
+**Entscheidung: Variante A** mit dem **öffentlichen PeerJS-Server** als Vermittler – kein Konto,
+kein eigener Server, keine Zusatzinstallation. Er vermittelt nur den Verbindungsaufbau; danach
+laufen die Befehle direkt per WebRTC, im selben WLAN also rein lokal. Der Vermittler ist
+konfigurierbar (eigener `peerjs`-Server oder später ein Cloudflare Worker). Variante B bleibt
+optional für „komplett ohne Internet“; das Protokoll (Abschnitt 4) ist transportunabhängig.
 
 ### 2.3 Manifest V3 und WebRTC
 
@@ -217,6 +217,15 @@ Jede Anfrage bekommt eine Antwort (`ok`/`error`), die App zeigt Fehler verständ
 
 ## 5. Umsetzung in Phasen
 
+**Stand:**
+
+| Phase | Status |
+|-------|--------|
+| 0 – Aufräumen | ✅ erledigt |
+| 1 – Verbindung | ✅ erledigt (PeerJS statt Cloudflare Worker, siehe 2.2) |
+| 2 – Player | ✅ erledigt |
+| 3 – Katalog | ⏭ als Nächstes |
+
 | Phase | Inhalt | Ergebnis |
 |-------|--------|----------|
 | **0 – Aufräumen** | Monorepo-Struktur (`extension/`, `remote-app/`, `signal/`, `shared/` für Protokoll-Typen), TypeScript, Vite, ESLint/Prettier; alten MV2-Code archivieren | Baubares Grundgerüst |
@@ -239,21 +248,21 @@ Markennamen im Extension-Namen verwenden (z. B. „Couch Remote for Netflix“ o
 |--------|---------------|
 | Netflix ändert DOM/interne API | Alle Selektoren in einem Adapter, `data-uia` bevorzugen, Fallback-Kette (API → `data-uia`-Button → Tastatur-Event), Diagnose-Seite, Snapshot-Tests |
 | Autoplay/Vollbild ohne Nutzergeste blockiert | Fenster-Fullscreen via `chrome.windows`, notfalls `chrome.debugger`-Input |
-| P2P-Verbindung scheitert (z. B. Gäste-WLAN mit Client-Isolation) | STUN, Relay-Fallback über Durable Object |
-| Signaling-Dienst weg (wie Heroku) | Eigener Cloudflare Worker, Code im Repo, in Minuten neu deploybar |
+| P2P-Verbindung scheitert (z. B. Gäste-WLAN mit Client-Isolation) | STUN/TURN-Server aus der PeerJS-Standardkonfiguration |
+| Vermittlungsdienst weg (wie Heroku) | Vermittler im Popup konfigurierbar; `peerjs`-Server ist Open Source und selbst hostbar |
 | Sicherheit: Fremde steuern Netflix | Geheimer Pairing-Key, signierte Nachrichten, Befehle nur aus fester Whitelist |
 | Nutzungsbedingungen | Nur Steuerung der eigenen Sitzung, kein Umgehen von DRM, keine Video-Übertragung |
 
 ---
 
-## 7. Offene Entscheidungen
+## 7. Entscheidungen (getroffen)
 
-1. **Nur Chrome** (Chromium-Familie) für den Anfang – oder muss Safari auf dem Mac mit rein?
-2. **Cloudflare-Worker** als Signaling ok (kostenloses Konto nötig), oder lieber
-   „komplett lokal“ mit Hilfsprogramm (Variante B)?
-3. **PWA reicht** für Version 1, oder sind Lautstärke-Tasten am Handy wichtig
-   (dann früh native Android-Hülle einplanen)?
-4. Neu aufsetzen in TypeScript (empfohlen) statt den alten Code zu flicken?
+1. **Browser:** nur Chrome (Chromium-Familie).
+2. **Verbindung:** WebRTC über öffentlichen PeerJS-Vermittler; lokal wäre schön, aber Netflix braucht
+   ohnehin Internet – ein lokales Hilfsprogramm lohnt den Installationsaufwand nicht.
+3. **Lautstärke:** Regler/Tasten in der App. Hardware-Lautstärketasten erfordern eine native
+   Android-Hülle → optional in Phase 6.
+4. **Technik:** Neuaufbau in TypeScript (esbuild für die Extension, Vite + Preact für die Handy-App).
 
 ---
 
