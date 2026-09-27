@@ -57,6 +57,10 @@ Die Kopplung bleibt dabei erhalten.
 
 Selbst bauen statt ZIP: `npm install && npm run build:ext`, dann den Ordner `extension/dist` laden.
 
+**Opera** (und andere Chromium-Browser wie Edge oder Brave): genauso, nur über `opera://extensions`
+→ „Entwicklermodus“ → „Entpackte Erweiterung laden“. Der automatische Test läuft auch mit Opera
+(getestet mit Opera 135).
+
 ### 2. Koppeln
 
 <img src="docs/img/popup.png" width="260" align="right" alt="Extension-Popup mit QR-Code">
@@ -135,6 +139,9 @@ npm run build             # extension/dist + remote/dist
 npm run test:e2e          # braucht vorher npm run build
 npm run dev:remote        # Handy-App lokal (im WLAN erreichbar)
 npm run docs:screenshots  # baut, testet und erneuert die Screenshots in docs/img
+
+# E2E mit einem anderen Chromium-Browser auf der PC-Seite, z. B. Opera:
+E2E_BROWSER=/Applications/Opera.app/Contents/MacOS/Opera npm run test:e2e
 ```
 
 Der E2E-Test fährt Chrome mit der gebauten Extension und steuert die Handy-App in einem zweiten Browser –
