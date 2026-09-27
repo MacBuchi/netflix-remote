@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="940" height="500" viewBox="0 0 940 500" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title>Aufbau: Handy-App, Vermittler, Relay und Chrome-Extension</title>
   <defs>
-    <marker id="red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#e50914"/></marker>
+    <marker id="red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6c4dff"/></marker>
     <marker id="grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9a9a9a"/></marker>
     <style>
       .box { fill: #232323; stroke: #3a3a3a; stroke-width: 1.5; }
-      .key { fill: #2a1416; stroke: #e50914; stroke-width: 1.5; }
+      .key { fill: #1d1838; stroke: #6c4dff; stroke-width: 1.5; }
       .frame { fill: none; stroke: #555; stroke-width: 1.5; stroke-dasharray: 6 5; }
       .h { fill: #fff; font-size: 15px; font-weight: 700; }
       .t { fill: #b3b3b3; font-size: 12.5px; }
       .s { fill: #8c8c8c; font-size: 12px; }
-      .direct { stroke: #e50914; stroke-width: 3; fill: none; }
+      .direct { stroke: #6c4dff; stroke-width: 3; fill: none; }
       .signal { stroke: #9a9a9a; stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
       .relay { stroke: #9a9a9a; stroke-width: 2; fill: none; }
     </style>
   </defs>
 
-  <rect width="940" height="500" rx="16" fill="#141414"/>
+  <rect width="940" height="500" rx="16" fill="#121218"/>
 
   <!-- phone -->
   <rect class="key" x="30" y="55" width="190" height="175" rx="14"/>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Couch Remote – Datenschutz</title>
+    <meta name="theme-color" content="#121218">
+    <style>
+        :root { color-scheme: dark; --bg: #121218; --fg: #f3f3f3; --muted: #a3a3a3; --accent: #6c4dff; --line: #2c2c38; }
+        body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+        main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+        h1 { font-size: 28px; margin: 0 0 4px; }
+        h2 { font-size: 20px; margin: 32px 0 8px; }
+        h3 { font-size: 16px; margin: 20px 0 4px; }
+        p, li { color: #d8d8e0; }
+        .muted { color: var(--muted); font-size: 14px; }
+        a { color: #a896ff; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; vertical-align: top; padding: 8px; border-bottom: 1px solid var(--line); }
+        th { color: var(--muted); font-weight: 600; }
+        hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+        nav a { margin-right: 16px; }
+    </style>
+</head>
+<body>
+<main>
+    <nav class="muted"><a href="#de">Deutsch</a><a href="#en">English</a></nav>
+
+    <section id="de" lang="de">
+        <h1>Datenschutz</h1>
+        <p class="muted">Couch Remote (Chrome-Extension und Handy-App) · Stand: September 2026</p>
+
+        <p>Couch Remote macht das Handy zur Fernbedienung für Netflix im Browser auf PC oder Mac. Es gibt
+        <strong>kein Konto, keinen eigenen Server, keine Werbung und kein Tracking</strong>. Der Entwickler
+        erhält keine Daten.</p>
+
+        <h2>Welche Daten verarbeitet werden</h2>
+        <h3>In der Extension (am PC)</h3>
+        <ul>
+            <li>Sie liest ausschließlich auf <code>www.netflix.com</code>, was dort angezeigt wird: Titel, Bilder-Adressen,
+            Fortschritt, Profilnamen, Wiedergabestatus (Position, Lautstärke, Ton- und Untertitelspur).</li>
+            <li>Diese Informationen gehen nur an das gekoppelte Handy – direkt oder Ende-zu-Ende verschlüsselt über
+            einen Relay (siehe unten). Sie werden nicht gespeichert und an niemanden sonst übermittelt.</li>
+            <li>Lokal gespeichert werden nur die Einstellungen: eine zufällige Geräte-ID, der Kopplungsschlüssel,
+            der Name des Rechners und gegebenenfalls eigene Serveradressen.</li>
+        </ul>
+        <h3>In der Handy-App</h3>
+        <ul>
+            <li>Lokal im Browser gespeichert werden die Kopplungen (Geräte-ID, Schlüssel, Rechnername, Serveradressen).</li>
+            <li>Der Kopplungsschlüssel steht im <code>#</code>-Teil des QR-Code-Links; dieser Teil wird von Browsern nie
+            an einen Webserver gesendet.</li>
+            <li>Bilder von Titeln lädt das Handy direkt von Netflix. Dabei gelten die
+            <a href="https://help.netflix.com/legal/privacy">Datenschutzbestimmungen von Netflix</a>.</li>
+        </ul>
+
+        <h2>Beteiligte Dienste</h2>
+        <p>Damit Handy und PC sich ohne eigenen Server finden, nutzt Couch Remote öffentliche Dienste. Diese sehen
+        technisch bedingt die IP-Adressen der Geräte, aber keine Inhalte:</p>
+        <table>
+            <tr><th>Dienst</th><th>Zweck</th><th>Was er sieht</th></tr>
+            <tr><td>PeerJS-Server (<code>0.peerjs.com</code>)</td><td>Verbindungsaufbau zwischen Handy und PC</td><td>IP-Adressen, zufällige Geräte-IDs, technische Verbindungsdaten</td></tr>
+            <tr><td>STUN-Server von Google (<code>stun.l.google.com</code>)</td><td>Ermitteln der öffentlichen Adresse für die Direktverbindung</td><td>IP-Adressen</td></tr>
+            <tr><td>TURN-Server von PeerJS (<code>*.turn.peerjs.com</code>)</td><td>Weiterleitung, falls keine Direktverbindung möglich ist</td><td>IP-Adressen; die Daten sind per WebRTC (DTLS) verschlüsselt</td></tr>
+            <tr><td>MQTT-Relay HiveMQ (<code>broker.hivemq.com</code>)</td><td>Ausweichweg in Netzen, die Direktverbindungen sperren</td><td>IP-Adressen und verschlüsselte Nachrichten (AES-GCM mit dem Kopplungsschlüssel); keine Inhalte</td></tr>
+            <tr><td>GitHub Pages</td><td>Ausliefern der Handy-App</td><td>IP-Adresse und übliche Server-Protokolldaten, siehe <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a></td></tr>
+        </table>
+        <p>Alle Server lassen sich in der Extension unter „Erweitert“ durch eigene ersetzen.</p>
+
+        <h2>Rechtsgrundlage und Rechte</h2>
+        <p>Die Verarbeitung dient allein der vom Nutzer gewünschten Funktion (Art. 6 Abs. 1 lit. b bzw. f DSGVO).
+        Da der Entwickler keine personenbezogenen Daten erhält, kann er dazu auch keine Auskunft geben; für die oben
+        genannten Dienste gelten deren Datenschutzbestimmungen. Alle lokal gespeicherten Daten verschwinden, wenn die
+        Extension entfernt bzw. die Website-Daten der Handy-App gelöscht werden.</p>
+
+        <h2>Kontakt</h2>
+        <p>Fragen und Hinweise bitte als Issue auf
+        <a href="https://github.com/MacBuchi/netflix-remote/issues">github.com/MacBuchi/netflix-remote</a>.</p>
+
+        <p class="muted">Couch Remote ist ein unabhängiges Open-Source-Projekt und nicht mit Netflix, Inc. verbunden,
+        von Netflix unterstützt oder beauftragt. Netflix ist eine Marke von Netflix, Inc.</p>
+    </section>
+
+    <hr>
+
+    <section id="en" lang="en">
+        <h1>Privacy</h1>
+        <p class="muted">Couch Remote (Chrome extension and phone app) · Last updated: September 2026</p>
+
+        <p>Couch Remote turns a phone into a remote control for Netflix in a desktop browser. There is
+        <strong>no account, no own server, no ads and no tracking</strong>. The developer receives no data.</p>
+
+        <h2>Data processed</h2>
+        <ul>
+            <li>The extension reads only what <code>www.netflix.com</code> displays (titles, image URLs, progress,
+            profile names, playback state) and sends it only to the paired phone, directly or end-to-end encrypted
+            through a relay. It is not stored or shared with anyone else.</li>
+            <li>Stored locally: a random device ID, the pairing key, the computer's name and optional custom server
+            addresses (extension); the pairings (phone app). The pairing key travels in the <code>#</code> part of the
+            QR code link, which browsers never send to a web server.</li>
+            <li>The phone loads title images directly from Netflix; Netflix's privacy statement applies.</li>
+        </ul>
+
+        <h2>Third-party services</h2>
+        <p>To connect phone and computer without an own server, Couch Remote uses public services that technically
+        see the devices' IP addresses but no content: the PeerJS server (<code>0.peerjs.com</code>, connection setup),
+        Google's STUN server (address discovery), PeerJS TURN servers (fallback forwarding, WebRTC-encrypted), the HiveMQ
+        public MQTT broker (fallback relay, messages AES-GCM encrypted with the pairing key) and GitHub Pages (hosting
+        the phone app). All servers can be replaced under “Erweitert” (advanced) in the extension.</p>
+
+        <h2>Contact</h2>
+        <p>Please open an issue on <a href="https://github.com/MacBuchi/netflix-remote/issues">github.com/MacBuchi/netflix-remote</a>.</p>
+
+        <p class="muted">Couch Remote is an independent open-source project and is not affiliated with, endorsed or
+        sponsored by Netflix, Inc. Netflix is a trademark of Netflix, Inc.</p>
+    </section>
+</main>
+</body>
+</html>

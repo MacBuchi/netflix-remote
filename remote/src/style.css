@@ -1,11 +1,12 @@
 :root {
     color-scheme: dark;
-    --bg: #141414;
-    --surface: #232323;
-    --surface-2: #2f2f2f;
+    --bg: #121218;
+    --surface: #1f1f29;
+    --surface-2: #2c2c38;
     --fg: #f3f3f3;
     --muted: #a3a3a3;
-    --accent: #e50914;
+    --accent: #6c4dff;
+    --danger: #e5484d;
     --ok: #46d369;
     --warn: #f5a623;
     --radius: 14px;
@@ -37,7 +38,7 @@ header select { background: transparent; color: var(--fg); border: 0; font: inhe
 
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); flex: none; }
 .dot.connected { background: var(--ok); }
-.dot.pc-offline, .dot.blocked, .dot.offline, .dot.auth-failed { background: var(--accent); }
+.dot.pc-offline, .dot.blocked, .dot.offline, .dot.auth-failed { background: var(--danger); }
 
 main { flex: 1; display: flex; flex-direction: column; padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; }
@@ -45,6 +46,8 @@ h1 { margin: 0 0 8px; font-size: 28px; }
 h2 { margin: 0; font-size: 20px; }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
+.legal { font-size: 12px; margin-top: 24px; }
+.legal a { color: #a896ff; }
 
 .steps { text-align: left; max-width: 420px; padding-left: 20px; display: grid; gap: 10px; }
 

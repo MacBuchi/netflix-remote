@@ -15,7 +15,7 @@
         if (path.startsWith('/watch/')) {
             document.body.innerHTML = `
                 <video></video>
-                <div data-uia="video-title"><h4>Dark</h4><span>S1:E3</span><span>Geheimnisse</span></div>`;
+                <div data-uia="video-title"><h4>Nachtfalter</h4><span>S1:E3</span><span>Geheimnisse</span></div>`;
         } else if (path.startsWith('/browse') && !sessionStorage.getItem('profile') && !params.has('jbv')) {
             document.body.innerHTML = `<ul class="choose-profile">
                 ${['Alex', 'Kinder'].map((n) => `<li><a class="profile-link" data-uia="profile-link" href="#"><img src="${img(n)}"><span class="profile-name">${n}</span></a></li>`).join('')}
@@ -47,27 +47,27 @@
                     header +
                     // Billboard: full-width recommendation with title logo; Netflix plays its trailer here.
                     `<div class="billboard-row"><div class="billboard billboard-pane">
-                        <div class="hero-image-wrapper"><img class="hero static-image" src="${img('The Crown', '80025678')}&hero=1"></div>
-                        <div class="billboard-title"><img class="title-logo" alt="The Crown" src="${img('The Crown', '80025678')}&logo=1"></div>
-                        <div class="billboard-description"><div class="synopsis">Die Regentschaft von Königin Elisabeth II. – Intrigen, Liebe und Politik.</div></div>
+                        <div class="hero-image-wrapper"><img class="hero static-image" src="${img('Hafenlichter', '80025678')}&hero=1"></div>
+                        <div class="billboard-title"><img class="title-logo" alt="Hafenlichter" src="${img('Hafenlichter', '80025678')}&logo=1"></div>
+                        <div class="billboard-description"><div class="synopsis">Eine Hafenstadt, drei Familien und ein Geheimnis, das alles verändert.</div></div>
                         <div class="billboard-links"><a class="playLink" href="/watch/80025678?trackId=1"><button data-uia="play-button">Abspielen</button></a><button data-uia="billboard-more-info">Weitere Infos</button></div>
                     </div></div>` +
-                    row('Weiterschauen', [['80100172', 'Dark', 35], ['80057281', 'Stranger Things', 70]]) +
-                    row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Squid Game']]) +
+                    row('Weiterschauen', [['80100172', 'Nachtfalter', 35], ['80057281', 'Sternenstaub', 70]]) +
+                    row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Rotes Licht']]) +
                     [1, 2, 3, 4, 5].map((r) => row(`Reihe ${r}`, filler(r))).join('');
                 if (params.has('jbv')) {
                     document.body.insertAdjacentHTML('beforeend', `
                         <div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">
-                            <img class="previewModal--player-titleTreatment-logo" alt="Dark" src="${img('Dark')}">
+                            <img class="previewModal--player-titleTreatment-logo" alt="Nachtfalter" src="${img('Nachtfalter')}">
                             <a data-uia="play-button" href="/watch/${params.get('jbv')}">Abspielen</a>
-                            <p class="preview-modal-synopsis">Ein Kind verschwindet.</p>
+                            <p class="preview-modal-synopsis">Im Wald verschwindet ein Kind.</p>
                             <button data-uia="dropdown-toggle">Staffel 1</button>
                             ${['Geheimnisse', 'Lügen', 'Vergangenheit'].map((t, i) => `
                                 <div class="titleCardList--container episode-item" data-uia="titleCard--container">
                                     <a href="/watch/9000${i + 1}"><img src="${img('Folge ' + (i + 1))}"></a>
                                     <div class="titleCard-title_index">${i + 1}</div>
                                     <div class="titleCard-title_text">${t}</div>
-                                    <p class="titleCard-synopsis">Folge ${i + 1} von Dark.</p>
+                                    <p class="titleCard-synopsis">Folge ${i + 1} von Nachtfalter.</p>
                                 </div>`).join('')}
                         </div>`);
                 }

@@ -152,7 +152,7 @@ try {
     });
 
     await step('player state reaches the phone', async () => {
-        await phone.getByRole('heading', { name: 'Dark' }).waitFor({ timeout: 10_000 });
+        await phone.getByRole('heading', { name: 'Nachtfalter' }).waitFor({ timeout: 10_000 });
         await phone.getByText('S1:E3 · Geheimnisse').waitFor();
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-player.png') });
     });
@@ -200,7 +200,7 @@ try {
         const hotel = await newHotelPhone();
         await hotel.goto(pairingUrl);
         await hotel.locator('.via', { hasText: 'Relay' }).waitFor({ timeout: 20_000 });
-        await hotel.getByRole('heading', { name: 'Dark' }).waitFor({ timeout: 15_000 });
+        await hotel.getByRole('heading', { name: 'Nachtfalter' }).waitFor({ timeout: 15_000 });
         await hotel.getByRole('button', { name: 'Pause' }).click();
         await netflix.waitForFunction(() => window.fake.paused === true);
         await hotel.getByRole('button', { name: 'Abspielen' }).waitFor({ timeout: 10_000 });
@@ -224,9 +224,9 @@ try {
 
     await step('catalog: rows with titles appear on the phone', async () => {
         await phone.getByRole('heading', { name: 'Weiterschauen' }).waitFor({ timeout: 15_000 });
-        await phone.getByRole('button', { name: 'Stranger Things' }).waitFor();
+        await phone.getByRole('button', { name: 'Sternenstaub' }).waitFor();
         await phone.getByRole('heading', { name: 'Derzeit beliebt' }).waitFor();
-        const progress = phone.getByRole('button', { name: 'Stranger Things' }).locator('.progress div');
+        const progress = phone.getByRole('button', { name: 'Sternenstaub' }).locator('.progress div');
         assert.equal(await progress.getAttribute('style'), 'width: 70%;');
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-catalog.png') });
     });
@@ -242,19 +242,19 @@ try {
     });
 
     await step('catalog: the billboard is shown on top and "Abspielen" starts it on the PC', async () => {
-        const hero = phone.getByRole('region', { name: 'Empfehlung: The Crown' });
+        const hero = phone.getByRole('region', { name: 'Empfehlung: Hafenlichter' });
         await hero.waitFor({ timeout: 15_000 });
-        await hero.getByText('Die Regentschaft von Königin Elisabeth II.', { exact: false }).waitFor();
+        await hero.getByText('Eine Hafenstadt, drei Familien', { exact: false }).waitFor();
         await hero.getByRole('button', { name: 'Abspielen' }).click();
         await netflix.waitForURL(/\/watch\/80025678/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('button', { name: 'Pause' }).waitFor({ timeout: 10_000 });
         await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click();
-        await phone.getByRole('button', { name: 'Stranger Things' }).waitFor({ timeout: 15_000 });
+        await phone.getByRole('button', { name: 'Sternenstaub' }).waitFor({ timeout: 15_000 });
     });
 
     await step('catalog: tapping a title and "Abspielen" starts it on the PC', async () => {
-        await phone.getByRole('button', { name: 'Stranger Things' }).click();
-        await phone.getByRole('dialog', { name: 'Stranger Things' }).getByRole('button', { name: 'Abspielen' }).click();
+        await phone.getByRole('button', { name: 'Sternenstaub' }).click();
+        await phone.getByRole('dialog', { name: 'Sternenstaub' }).getByRole('button', { name: 'Abspielen' }).click();
         await netflix.waitForURL(/\/watch\/80057281/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('button', { name: 'Pause' }).waitFor({ timeout: 10_000 });
     });
@@ -262,18 +262,18 @@ try {
     await step('catalog: search from the phone', async () => {
         await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click();
         await phone.getByLabel('Suche').waitFor({ timeout: 15_000 });
-        await phone.getByLabel('Suche').fill('Dark');
+        await phone.getByLabel('Suche').fill('Nachtfalter');
         await phone.getByLabel('Suche').press('Enter');
-        await netflix.waitForURL(/\/search\?q=Dark/, { timeout: 10_000, waitUntil: 'commit' });
-        await phone.getByRole('button', { name: 'Dark – Serie' }).waitFor({ timeout: 15_000 });
+        await netflix.waitForURL(/\/search\?q=Nachtfalter/, { timeout: 10_000, waitUntil: 'commit' });
+        await phone.getByRole('button', { name: 'Nachtfalter – Serie' }).waitFor({ timeout: 15_000 });
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-search.png') });
     });
 
     await step('catalog: details with episodes, tapping an episode plays it', async () => {
-        await phone.getByRole('button', { name: 'Dark – Serie' }).click();
+        await phone.getByRole('button', { name: 'Nachtfalter – Serie' }).click();
         await phone.getByRole('button', { name: 'Details & Folgen' }).click();
         await netflix.waitForURL(/jbv=7002/, { timeout: 10_000, waitUntil: 'commit' });
-        await phone.getByText('Ein Kind verschwindet.').waitFor({ timeout: 15_000 });
+        await phone.getByText('Im Wald verschwindet ein Kind.').waitFor({ timeout: 15_000 });
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-detail.png') });
         await phone.getByRole('button', { name: /2\. Lügen/ }).click();
         await netflix.waitForURL(/\/watch\/90002/, { timeout: 10_000, waitUntil: 'commit' });

@@ -173,11 +173,15 @@ function Onboarding() {
             <main class="center">
                 <h1>Couch Remote</h1>
                 <ol class="steps">
-                    <li>Extension „Couch Remote für Netflix“ in Chrome auf dem PC/Mac installieren.</li>
+                    <li>Extension „Couch Remote“ in Chrome auf dem PC/Mac installieren.</li>
                     <li>In Chrome auf das Extension-Symbol klicken – ein QR-Code erscheint.</li>
                     <li>QR-Code mit der Handy-Kamera scannen. Fertig – ab dann verbindet sich diese App automatisch.</li>
                 </ol>
                 <p class="muted">Tipp: Im Browser-Menü „Zum Startbildschirm hinzufügen“ wählen, dann startet die Fernbedienung wie eine App.</p>
+                <p class="muted legal">
+                    <a href={`${import.meta.env.BASE_URL}privacy.html`}>Datenschutz</a> · Unabhängiges Projekt, nicht mit Netflix
+                    verbunden.
+                </p>
             </main>
         </div>
     );
