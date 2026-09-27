@@ -1,42 +1,57 @@
 # Publishes the Chrome extension as a GitHub Release.
-# Bump "version" in extension/static/manifest.json, then push a matching tag:
-#   git tag v2.1.0 && git push origin v2.1.0
+# Runs on every push to master: if extension/static/manifest.json carries a version
+# that has no release yet, it builds the extension and creates tag + release v<version>.
+# So releasing = bump "version" in the manifest and merge. Can also be started by hand.
 name: Release
 
 on:
   push:
-    tags: ['v*']
+    branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Version from manifest
+        id: version
+        run: |
+          tag="v$(node -p "require('./extension/static/manifest.json').version")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "$tag already released, nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.version.outputs.exists == 'false'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - name: Tag must match the extension version
-        run: |
-          version="v$(node -p "require('./extension/static/manifest.json').version")"
-          if [ "$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match manifest version $version"
-            exit 1
-          fi
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build:ext
+      - if: steps.version.outputs.exists == 'false'
+        run: npm ci && npm run typecheck && npm test && npm run build:ext
       - name: Package extension
-        run: cd extension/dist && zip -r "../../couch-remote-$GITHUB_REF_NAME.zip" . -x '*.map'
+        if: steps.version.outputs.exists == 'false'
+        run: cd extension/dist && zip -r "../../couch-remote-${{ steps.version.outputs.tag }}.zip" . -x '*.map'
       - uses: softprops/action-gh-release@v2
+        if: steps.version.outputs.exists == 'false'
         with:
-          files: couch-remote-${{ github.ref_name }}.zip
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          files: couch-remote-${{ steps.version.outputs.tag }}.zip
           generate_release_notes: true
           body: |
             **Installation:** ZIP herunterladen und entpacken, `chrome://extensions` öffnen,
             Entwicklermodus einschalten, „Entpackte Erweiterung laden“ und den entpackten Ordner wählen.
-            Update: neuen Ordner an dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.
+            **Update:** neuen Ordner an dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.

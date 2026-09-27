@@ -29,8 +29,8 @@ Ohne eigenen Build: Unter [Releases](https://github.com/MacBuchi/netflix-remote/
 die ZIP-Datei herunterladen, entpacken und diesen Ordner laden. Für ein Update den neuen Ordner an
 dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.
 
-Neue Version veröffentlichen: `version` in `extension/static/manifest.json` erhöhen, mergen, dann
-`git tag vX.Y.Z && git push origin vX.Y.Z` – der Workflow „Release“ baut und veröffentlicht die ZIP.
+Neue Version veröffentlichen: `version` in `extension/static/manifest.json` erhöhen und nach `master`
+mergen – der Workflow „Release“ legt Tag und Release mit der ZIP automatisch an.
 
 ### 2. Handy-App veröffentlichen (einmalig)
 
