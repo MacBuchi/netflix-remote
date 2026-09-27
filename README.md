@@ -35,14 +35,14 @@ Ohne eigenen Build: Unter [Releases](https://github.com/MacBuchi/netflix-remote/
 die ZIP-Datei herunterladen, entpacken und diesen Ordner laden. Für ein Update den neuen Ordner an
 dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.
 
-Neue Version veröffentlichen: `version` in `extension/static/manifest.json` erhöhen und nach `master`
+Neue Version veröffentlichen: `version` in `extension/static/manifest.json` erhöhen und nach `main`
 mergen – der Workflow „Release“ legt Tag und Release mit der ZIP automatisch an.
 
 ### 2. Handy-App veröffentlichen (einmalig)
 
 Die Handy-App wird über GitHub Pages ausgeliefert:
 Repo → Settings → Pages → Source: **GitHub Actions**. Danach baut der Workflow
-„Deploy phone app“ bei jedem Push auf `master` die App nach
+„Deploy phone app“ bei jedem Push auf `main` die App nach
 `https://macbuchi.github.io/netflix-remote/`.
 
 Läuft die App unter einer anderen Adresse: Extension-Popup → „Erweitert“ → „Adresse der Handy-App“.

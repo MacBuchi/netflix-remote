@@ -1,12 +1,12 @@
 # Publishes the Chrome extension as a GitHub Release.
-# Runs on every push to master: if extension/static/manifest.json carries a version
+# Runs on every push to main: if extension/static/manifest.json carries a version
 # that has no release yet, it builds the extension and creates tag + release v<version>.
 # So releasing = bump "version" in the manifest and merge. Can also be started by hand.
 name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
