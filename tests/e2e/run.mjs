@@ -22,6 +22,20 @@ const SHOTS = process.env.E2E_SCREENSHOTS;
 
 const fakeNetflix = await readFile(join(import.meta.dirname, 'fake-netflix.html'), 'utf8');
 
+/** A colored poster named after the image URL's `t` parameter (the fake page puts the title there). */
+function posterSvg(url) {
+    const title = new URL(url).searchParams.get('t') ?? '';
+    const hue = [...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 200);
+    const esc = title.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`);
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+        <defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},55%,42%)"/><stop offset="1" stop-color="hsl(${(hue + 50) % 360},60%,14%)"/></linearGradient></defs>
+        <rect width="320" height="180" fill="url(#g)"/>
+        <text x="160" y="100" fill="#fff" font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle">${esc}</text></svg>`;
+}
+// Never fetch the Netflix CDN (CI has internet, real requests would stall page loads); for screenshots draw placeholders.
+const cdn = (route) =>
+    SHOTS ? route.fulfill({ contentType: 'image/svg+xml', body: posterSvg(route.request().url()) }) : route.abort();
+
 const peerServer = PeerServer({ port: PEER_PORT, host: '127.0.0.1', path: '/' });
 const web = createServer(async (req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
@@ -57,7 +71,7 @@ const hotelPhoneBrowser = await chromium.launch({ args: ['--force-webrtc-ip-hand
 
 async function newHotelPhone() {
     const ctx = await hotelPhoneBrowser.newContext({ viewport: { width: 400, height: 860 } });
-    await ctx.route('https://*.nflxso.net/**', (route) => route.abort());
+    await ctx.route('https://*.nflxso.net/**', cdn);
     return ctx.newPage();
 }
 
@@ -81,8 +95,7 @@ const step = async (name, fn) => {
 
 try {
     await pc.route('https://www.netflix.com/**', (route) => route.fulfill({ contentType: 'text/html', body: fakeNetflix }));
-    // The fake catalog uses real-looking CDN image URLs; never fetch them (CI has internet, the images would stall page loads).
-    await pc.route('https://*.nflxso.net/**', (route) => route.abort());
+    await pc.route('https://*.nflxso.net/**', cdn);
 
     const sw = pc.serviceWorkers()[0] ?? (await pc.waitForEvent('serviceworker'));
     const extId = new URL(sw.url()).host;
@@ -102,6 +115,11 @@ try {
         await popup.waitForFunction(() => document.querySelector('#status')?.textContent?.startsWith('Bereit'), null, { timeout: 15_000 });
         config = await popup.evaluate(() => chrome.runtime.sendMessage({ target: 'sw', type: 'getConfig' }));
         assert.equal(config.pcName, 'Test-Mac');
+        if (SHOTS) {
+            await popup.locator('details').evaluate((d) => (d.open = false));
+            await popup.setViewportSize({ width: 360, height: 560 });
+            await popup.screenshot({ path: join(SHOTS, 'popup.png'), fullPage: true });
+        }
         await popup.close();
     });
 
@@ -110,7 +128,7 @@ try {
 
     const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker, r: config.relay })}`;
     const phoneCtx = await phoneBrowser.newContext({ viewport: { width: 400, height: 860 }, isMobile: true, hasTouch: true });
-    await phoneCtx.route('https://*.nflxso.net/**', (route) => route.abort());
+    await phoneCtx.route('https://*.nflxso.net/**', cdn);
     const phone = await phoneCtx.newPage();
     watched.phone = phone;
 
@@ -188,6 +206,7 @@ try {
     await step('catalog: profile gate is shown on the phone and picking a profile works', async () => {
         await netflix.goto('https://www.netflix.com/browse');
         await phone.getByRole('heading', { name: 'Wer schaut gerade?' }).waitFor({ timeout: 15_000 });
+        if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-profiles.png') });
         await phone.getByRole('button', { name: 'Kinder' }).click();
         await netflix.waitForFunction(() => sessionStorage.getItem('profile') === 'Kinder');
     });
@@ -196,6 +215,8 @@ try {
         await phone.getByRole('heading', { name: 'Weiterschauen' }).waitFor({ timeout: 15_000 });
         await phone.getByRole('button', { name: 'Stranger Things' }).waitFor();
         await phone.getByRole('heading', { name: 'Derzeit beliebt' }).waitFor();
+        const progress = phone.getByRole('button', { name: 'Stranger Things' }).locator('.progress div');
+        assert.equal(await progress.getAttribute('style'), 'width: 70%;');
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-catalog.png') });
     });
 
@@ -223,6 +244,7 @@ try {
         await phone.getByLabel('Suche').press('Enter');
         await netflix.waitForURL(/\/search\?q=Dark/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('button', { name: 'Dark – Serie' }).waitFor({ timeout: 15_000 });
+        if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-search.png') });
     });
 
     await step('catalog: details with episodes, tapping an episode plays it', async () => {

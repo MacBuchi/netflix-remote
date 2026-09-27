@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Couch Remote für Netflix",
     "short_name": "Couch Remote",
-    "version": "2.2.2",
+    "version": "2.2.3",
     "description": "Netflix im Chrome auf PC/Mac vom Handy aus steuern.",
     "minimum_chrome_version": "116",
     "permissions": ["offscreen", "storage", "scripting", "alarms"],

@@ -1,6 +1,6 @@
 {
   "name": "netflix-couch-remote",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "private": true,
   "type": "module",
   "description": "Control Netflix in desktop Chrome from your Android phone: player and catalog.",
@@ -12,7 +12,8 @@
     "dev:remote": "vite --host",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "node tests/e2e/run.mjs"
+    "test:e2e": "node tests/e2e/run.mjs",
+    "docs:screenshots": "npm run build && mkdir -p docs/img && E2E_SCREENSHOTS=docs/img node tests/e2e/run.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.0",
