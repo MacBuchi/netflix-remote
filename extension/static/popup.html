@@ -4,13 +4,13 @@
     <meta charset="utf-8">
     <title>Couch Remote</title>
     <style>
-        :root { color-scheme: dark; --bg: #141414; --fg: #f3f3f3; --muted: #9a9a9a; --accent: #e50914; --line: #2c2c2c; }
+        :root { color-scheme: dark; --bg: #121218; --fg: #f3f3f3; --muted: #9a9a9a; --accent: #6c4dff; --danger: #e5484d; --line: #2c2c2c; }
         * { box-sizing: border-box; }
         body { margin: 0; width: 320px; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
         h1 { font-size: 16px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
         .dot.online { background: #46d369; }
-        .dot.offline { background: var(--accent); }
+        .dot.offline { background: var(--danger); }
         #qr { display: block; margin: 0 auto 8px; background: #fff; border-radius: 8px; padding: 8px; }
         p { margin: 8px 0; color: var(--muted); }
         label { display: block; margin: 12px 0 4px; color: var(--muted); font-size: 12px; }
@@ -22,6 +22,8 @@
         summary { cursor: pointer; color: var(--muted); }
         #devices { color: var(--fg); }
         .small { font-size: 12px; }
+        .legal { margin-top: 16px; color: var(--muted); }
+        .legal a { color: #a896ff; }
     </style>
 </head>
 <body>
@@ -50,6 +52,10 @@
         <input id="relay" placeholder="wss://broker.hivemq.com:8884/mqtt">
         <div class="row"><button id="save" class="primary">Speichern</button></div>
     </details>
+    <p class="small legal">
+        <a href="https://macbuchi.github.io/netflix-remote/privacy.html" target="_blank" rel="noopener">Datenschutz</a> ·
+        Unabhängiges Projekt, nicht mit Netflix verbunden.
+    </p>
     <script src="popup.js"></script>
 </body>
 </html>

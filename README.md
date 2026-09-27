@@ -1,8 +1,11 @@
-# Couch Remote für Netflix
+# Couch Remote
 
 Netflix läuft in Chrome auf PC oder Mac, das Android-Handy ist die Fernbedienung – für den Player
 und für die Auswahl von Filmen und Serien. Nur eine Chrome-Extension und eine Web-App, kein Konto,
 kein eigener Server.
+
+> Couch Remote ist ein unabhängiges Open-Source-Projekt und nicht mit Netflix, Inc. verbunden,
+> von Netflix unterstützt oder beauftragt. Netflix ist eine Marke von Netflix, Inc.
 
 <p align="center">
   <img src="docs/img/remote-catalog.png" width="240" alt="Film-Browser auf dem Handy: Reihen mit Bildern und Fortschritt, aktiver Bereich rot markiert">
@@ -158,6 +161,17 @@ mit angepasst. Für die Screenshots zeichnet der Test Platzhalter-Poster statt d
 - **Release** – legt Tag `vX.Y.Z` und ein GitHub-Release mit der Extension-ZIP an, wenn die Version neu ist.
 - **Deploy phone app** – baut die Handy-App und veröffentlicht sie auf GitHub Pages
   (einmalig einzurichten: Repo → Settings → Pages → Source: **GitHub Actions**).
+
+## Rechtliches
+
+- **Datenschutz:** [macbuchi.github.io/netflix-remote/privacy.html](https://macbuchi.github.io/netflix-remote/privacy.html)
+  (Quelle: `remote/public/privacy.html`) – kein Konto, kein Tracking, der Entwickler erhält keine Daten;
+  dort sind die beteiligten öffentlichen Server aufgeführt.
+- **Lizenz:** MIT, siehe [LICENSE.md](LICENSE.md). Jeder Build enthält `THIRD_PARTY_LICENSES.txt` mit den
+  Lizenzen der gebündelten Bibliotheken (erzeugt von `scripts/third-party-licenses.mjs`).
+- **Name und Gestaltung:** bewusst ohne „Netflix“ im Namen und ohne Netflix-Farben; Netflix wird nur genannt,
+  um zu beschreiben, womit die Extension funktioniert. Die Screenshots zeigen erfundene Titel.
+- Die Extension überträgt kein Video und umgeht keinen Kopierschutz; sie steuert nur die eigene Sitzung.
 
 Ursprünglich ein Fork von [butttons/netflix-remote](https://github.com/butttons/netflix-remote) (MIT).
 Die Planung und offene Punkte stehen in [PLAN.md](PLAN.md).

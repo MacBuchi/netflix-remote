@@ -5,7 +5,7 @@ steuert nicht nur den Player (Play/Pause, Spulen, Lautstärke, Untertitel …), 
 auch den **Katalog**: Zeilen durchblättern, Titel ansehen, suchen, Profil wählen und
 einen Film/eine Folge starten.
 
-> **Stand (Version 2.2.4):** Phasen 0–3 sind umgesetzt und mit echtem Netflix getestet (Kopplung,
+> **Stand (Version 2.2.5):** Phasen 0–3 sind umgesetzt und mit echtem Netflix getestet (Kopplung,
 > Relay im Hotel-WLAN, Player, Film-Browser mit Bildern, Vorschau, Suche und Bereichen). Offen sind
 > nur noch optionale Punkte, siehe [Abschnitt 5](#5-umsetzung-in-phasen). Wo die Umsetzung vom
 > ursprünglichen Plan abweicht, ist es in den Abschnitten vermerkt.
@@ -258,8 +258,9 @@ Jede Anfrage bekommt eine Antwort (`ok`/`error`), die App zeigt Fehler verständ
 
 **Offen / nächste Schritte:**
 - Optional: D-Pad-Modus als Fallback (Phase 4).
-- Chrome Web Store: Datenschutzseite, neutraler Name ohne „Netflix“ als Markenname, Store-Upload im
-  Release-Workflow.
+- Chrome Web Store: Voraussetzungen erledigt (neutraler Name „Couch Remote“, eigene Farben, Datenschutzseite,
+  Lizenzhinweise, Hinweis „nicht mit Netflix verbunden“). Offen: Entwicklerkonto, Store-Eintrag, Store-Upload
+  im Release-Workflow. Opera-Nutzer können dann über „Install Chrome Extensions“ installieren.
 - Beobachten: Selektoren für den Detaildialog (Staffelwahl) sind am wenigsten erprobt; bei Problemen
   „Diagnose anzeigen“ nutzen und `extension/src/netflix/selectors.ts` anpassen.
 

@@ -4,14 +4,14 @@ import { chromium } from 'playwright';
 
 const svg = (padding) => `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="${padding ? 0 : 112}" fill="#141414"/>
+  <rect width="512" height="512" rx="${padding ? 0 : 112}" fill="#121218"/>
   <g transform="translate(256 256) scale(${padding ? 0.72 : 1}) translate(-256 -256)">
-    <rect x="156" y="56" width="200" height="400" rx="60" fill="#e50914"/>
-    <circle cx="256" cy="176" r="62" fill="#141414"/>
+    <rect x="156" y="56" width="200" height="400" rx="60" fill="#6c4dff"/>
+    <circle cx="256" cy="176" r="62" fill="#121218"/>
     <path d="M236 146 L286 176 L236 206 Z" fill="#fff"/>
-    <rect x="206" y="290" width="100" height="22" rx="11" fill="#141414"/>
-    <rect x="206" y="340" width="100" height="22" rx="11" fill="#141414"/>
-    <rect x="206" y="390" width="100" height="22" rx="11" fill="#141414"/>
+    <rect x="206" y="290" width="100" height="22" rx="11" fill="#121218"/>
+    <rect x="206" y="340" width="100" height="22" rx="11" fill="#121218"/>
+    <rect x="206" y="390" width="100" height="22" rx="11" fill="#121218"/>
   </g>
 </svg>`;
 
