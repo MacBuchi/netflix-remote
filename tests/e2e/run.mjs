@@ -41,6 +41,24 @@ function posterSvg(url) {
         <defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},55%,42%)"/><stop offset="1" stop-color="hsl(${(hue + 50) % 360},60%,14%)"/></linearGradient></defs>
         <rect width="320" height="180" fill="url(#g)"/>${label}</svg>`;
 }
+// Stand-in for OMDb: accepts only the key "test-key" and knows some of the fake titles.
+const OMDB_TITLES = {
+    Sternenstaub: { imdbID: 'tt9000001', imdbRating: '8.1', Metascore: '81', Ratings: [{ Source: 'Rotten Tomatoes', Value: '94%' }] },
+    Hafenlichter: { imdbID: 'tt9000002', imdbRating: '7.9', Ratings: [{ Source: 'Rotten Tomatoes', Value: '88%' }] },
+    Nachtfalter: { imdbID: 'tt9000003', imdbRating: '8.7', Ratings: [] },
+};
+const omdb = (route) => {
+    const p = new URL(route.request().url()).searchParams;
+    const found = p.get('i') ? { imdbID: p.get('i'), imdbRating: '9.3' } : OMDB_TITLES[p.get('t')];
+    const body =
+        p.get('apikey') !== 'test-key'
+            ? { Response: 'False', Error: 'Invalid API key!' }
+            : found
+              ? { Response: 'True', ...found }
+              : { Response: 'False', Error: 'Movie not found!' };
+    return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+};
+
 // Never fetch the Netflix CDN (CI has internet, real requests would stall page loads); for screenshots draw placeholders.
 const cdn = (route) =>
     SHOTS ? route.fulfill({ contentType: 'image/svg+xml', body: posterSvg(route.request().url()) }) : route.abort();
@@ -140,6 +158,7 @@ try {
     const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker, r: config.relay })}`;
     const phoneCtx = await phoneBrowser.newContext({ viewport: { width: 400, height: 860 }, isMobile: true, hasTouch: true });
     await phoneCtx.route('https://*.nflxso.net/**', cdn);
+    await phoneCtx.route('https://www.omdbapi.com/**', omdb);
     const phone = await phoneCtx.newPage();
     watched.phone = phone;
 
@@ -239,6 +258,30 @@ try {
         await hotel.getByRole('button', { name: 'Titel 3-29' }).waitFor();
         assert.ok(largestRelayMessage > 0 && largestRelayMessage < 32_000, `largest relay message ${largestRelayMessage} bytes`);
         await hotel.close();
+    });
+
+    await step('ratings: OMDb key in the settings, IMDb / Rotten Tomatoes / Metacritic on titles', async () => {
+        await phone.getByRole('button', { name: 'Einstellungen' }).click();
+        const settings = phone.getByRole('dialog', { name: 'Einstellungen' });
+        await settings.getByLabel('OMDb-Schlüssel').fill('wrong');
+        await settings.getByRole('button', { name: 'Speichern' }).click();
+        await settings.getByText('nicht angenommen').waitFor();
+        await settings.getByLabel('OMDb-Schlüssel').fill('test-key');
+        await settings.getByRole('button', { name: 'Speichern' }).click();
+        await settings.waitFor({ state: 'detached' });
+
+        await phone.getByRole('button', { name: 'Sternenstaub' }).click();
+        const sheet = phone.getByRole('dialog', { name: 'Sternenstaub' });
+        await sheet.getByRole('link', { name: 'IMDb 8,1 von 10' }).waitFor({ timeout: 10_000 });
+        assert.equal(await sheet.getByRole('link', { name: 'IMDb 8,1 von 10' }).getAttribute('href'), 'https://www.imdb.com/title/tt9000001/');
+        await sheet.getByLabel('Rotten Tomatoes 94%').waitFor();
+        await sheet.getByLabel('Metacritic 81 von 100').waitFor();
+        if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-ratings.png') });
+        await sheet.getByRole('button', { name: 'Schließen' }).click();
+        // The billboard shows what is known (no Metacritic for this one).
+        const hero = phone.getByRole('region', { name: 'Empfehlung: Hafenlichter' });
+        await hero.getByLabel('Rotten Tomatoes 88%').waitFor({ timeout: 10_000 });
+        assert.equal(await hero.getByText('MC').count(), 0);
     });
 
     await step('catalog: the billboard is shown on top and "Abspielen" starts it on the PC', async () => {

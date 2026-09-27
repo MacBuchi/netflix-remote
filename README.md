@@ -26,6 +26,7 @@ kein eigener Server.
 - Bereiche Start, Serien, Filme, Neu und Meine Liste – der aktive Bereich ist rot markiert, auch wenn am PC navigiert wird
 - Suche über die Handy-Tastatur
 - Titel antippen → „Abspielen“ oder „Details & Folgen“ mit Beschreibung, Staffelwahl und Folgenliste
+- Optional Bewertungen von IMDb, Rotten Tomatoes und Metacritic (mit eigenem, kostenlosem OMDb-Schlüssel, siehe unten)
 - Bleibt die Übersicht leer: „Diagnose anzeigen“ zeigt, wie die Extension die Netflix-Seite sieht
 
 **Player**
@@ -77,6 +78,24 @@ Unter „Name dieses Rechners“ lässt sich der Rechner benennen, das hilft bei
 „Neu koppeln“ erzeugt einen neuen Schlüssel; alle bisher gekoppelten Handys müssen dann neu scannen.
 
 Oben rechts zeigt die Handy-App, wie sie verbunden ist: „Direkt“ (WebRTC) oder „Relay“.
+
+<br clear="right">
+
+### 3. Bewertungen einschalten (optional)
+
+<img src="docs/img/remote-ratings.png" width="220" align="right" alt="Titel mit Bewertungen von IMDb, Rotten Tomatoes und Metacritic">
+
+Die Handy-App kann bei Titeln kompakt die Bewertungen von IMDb, Rotten Tomatoes und Metacritic zeigen –
+jeweils die, die bekannt sind. Sie kommen vom Dienst [OMDb](https://www.omdbapi.com/); jeder Nutzer braucht
+dafür einen eigenen, kostenlosen Schlüssel (1.000 Abfragen pro Tag):
+
+1. Auf [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) „FREE“ wählen und die E-Mail-Adresse eintragen.
+2. Den Aktivierungslink in der E-Mail anklicken.
+3. In der Handy-App oben rechts auf das Zahnrad tippen und den Schlüssel eintragen.
+
+Die App fragt nur beim Öffnen eines Titels (Titel-Blatt, Details, Empfehlung) und merkt sich die Antworten
+eine Woche. Die Zuordnung läuft über den Titelnamen: Deutsche Netflix-Titel, die bei IMDb anders heißen,
+findet OMDb manchmal nicht, dann erscheint einfach keine Bewertung.
 
 <br clear="right">
 

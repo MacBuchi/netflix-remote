@@ -51,6 +51,10 @@
             an einen Webserver gesendet.</li>
             <li>Bilder von Titeln lädt das Handy direkt von Netflix. Dabei gelten die
             <a href="https://help.netflix.com/legal/privacy">Datenschutzbestimmungen von Netflix</a>.</li>
+            <li><strong>Bewertungen (optional):</strong> Nur wenn du in den Einstellungen einen eigenen OMDb-Schlüssel
+            einträgst, fragt das Handy bei <a href="https://www.omdbapi.com/">OMDb</a> nach den Namen der Titel, die du
+            öffnest. OMDb sieht dabei deine IP-Adresse, den Schlüssel und die Titelnamen. Schlüssel und Ergebnisse
+            bleiben auf dem Handy gespeichert (Ergebnisse bis zu einer Woche).</li>
         </ul>
 
         <h2>Beteiligte Dienste</h2>
@@ -62,6 +66,7 @@
             <tr><td>STUN-Server von Google (<code>stun.l.google.com</code>)</td><td>Ermitteln der öffentlichen Adresse für die Direktverbindung</td><td>IP-Adressen</td></tr>
             <tr><td>TURN-Server von PeerJS (<code>*.turn.peerjs.com</code>)</td><td>Weiterleitung, falls keine Direktverbindung möglich ist</td><td>IP-Adressen; die Daten sind per WebRTC (DTLS) verschlüsselt</td></tr>
             <tr><td>MQTT-Relay HiveMQ (<code>broker.hivemq.com</code>)</td><td>Ausweichweg in Netzen, die Direktverbindungen sperren</td><td>IP-Adressen und verschlüsselte Nachrichten (AES-GCM mit dem Kopplungsschlüssel); keine Inhalte</td></tr>
+            <tr><td>OMDb (<code>www.omdbapi.com</code>), nur mit eigenem Schlüssel</td><td>Bewertungen von IMDb, Rotten Tomatoes und Metacritic</td><td>IP-Adresse, dein OMDb-Schlüssel, Namen der geöffneten Titel</td></tr>
             <tr><td>GitHub Pages</td><td>Ausliefern der Handy-App</td><td>IP-Adresse und übliche Server-Protokolldaten, siehe <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a></td></tr>
         </table>
         <p>Alle Server lassen sich in der Extension unter „Erweitert“ durch eigene ersetzen.</p>
@@ -98,6 +103,9 @@
             addresses (extension); the pairings (phone app). The pairing key travels in the <code>#</code> part of the
             QR code link, which browsers never send to a web server.</li>
             <li>The phone loads title images directly from Netflix; Netflix's privacy statement applies.</li>
+            <li>Ratings (optional): only if you enter your own OMDb key in the settings, the phone asks OMDb
+            (<code>www.omdbapi.com</code>) for the names of titles you open; OMDb sees your IP address, key and those
+            titles. Key and results (up to a week) stay on the phone.</li>
         </ul>
 
         <h2>Third-party services</h2>
