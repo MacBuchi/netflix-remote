@@ -138,9 +138,10 @@ try {
         await netflix.close();
         await phone.getByRole('button', { name: 'Netflix am PC öffnen' }).click();
         await phone.getByText('Titel auswählen und starten').waitFor({ timeout: 10_000 });
-        // The new tab isn't routed to the fake page (no internet here), so check Chrome's tab list instead.
+        // Tabs opened by the extension bypass the test's routing: depending on network access they show an
+        // error page or the real netflix.com (which redirects to /login). Only check that a Netflix tab exists.
         const urls = await sw.evaluate(async () => (await chrome.tabs.query({})).map((t) => t.pendingUrl || t.url));
-        assert.ok(urls.includes('https://www.netflix.com/browse'), urls.join(', '));
+        assert.ok(urls.some((u) => u && new URL(u).host === 'www.netflix.com'), urls.join(', '));
     });
 
     await step('wrong key is rejected', async () => {
