@@ -1,7 +1,7 @@
 // Messages between the extension's own parts:
 //   offscreen (WebRTC) <-> service worker (tabs, windows) <-> content script <-> page script (MAIN world)
 
-import type { Command, CommandResult, PageKind, PlayerCommand, PlayerState, RemoteState } from '../../shared/protocol';
+import type { CatalogCommand, Command, CommandResult, PageKind, PlayerCommand, PlayerState, RemoteState } from '../../shared/protocol';
 
 export interface Config {
     /** Stable PeerJS id of this browser; phones reconnect to it. */
@@ -21,6 +21,7 @@ export const DEFAULT_REMOTE_URL = 'https://macbuchi.github.io/netflix-remote/';
 
 export interface TabState {
     page: PageKind;
+    location: string;
     player: PlayerState | null;
 }
 
@@ -45,7 +46,7 @@ export type OffscreenMsg =
     | { target: 'offscreen'; type: 'status' };
 
 export type ContentMsg =
-    | { target: 'content'; type: 'command'; cmd: PlayerCommand }
+    | { target: 'content'; type: 'command'; cmd: PlayerCommand | CatalogCommand }
     | { target: 'content'; type: 'streaming'; on: boolean }
     | { target: 'content'; type: 'pushState' };
 

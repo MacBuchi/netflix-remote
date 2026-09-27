@@ -1,6 +1,16 @@
 import { render } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { formatTime, type Command, type Pairing, type PageKind, type PlayerState, type RemoteState } from '../../shared/protocol';
+import {
+    formatTime,
+    type CatalogCommand,
+    type Command,
+    type CommandResult,
+    type Pairing,
+    type PageKind,
+    type PlayerState,
+    type RemoteState,
+} from '../../shared/protocol';
+import { CatalogView } from './catalog';
 import { RemoteClient, deviceName, type ClientSnapshot } from './client';
 import { Icon, type IconName } from './icons';
 import { activePeerId, consumePairingFromUrl, loadPairings, removePairing, setActive } from './pairings';
@@ -95,6 +105,12 @@ function App() {
         },
         [],
     );
+    // Silent request for data (no haptics, no error toast); used by the catalog.
+    const query = useMemo(
+        () => (cmd: CatalogCommand): Promise<CommandResult> =>
+            client.current?.request(cmd) ?? Promise.resolve({ ok: false, error: 'Nicht verbunden' }),
+        [],
+    );
 
     if (!pairing) return <Onboarding />;
 
@@ -113,7 +129,7 @@ function App() {
             <Header pairings={pairings} active={pairing} snap={snap} onSwitch={switchPc} />
             <main>
                 {snap?.status === 'connected' ? (
-                    <Connected state={snap.state} send={send} />
+                    <Connected state={snap.state} send={send} query={query} />
                 ) : (
                     <Disconnected snap={snap} onRetry={() => client.current?.wake() ?? undefined} onForget={forget} />
                 )}
@@ -193,7 +209,11 @@ function Disconnected({ snap, onRetry, onForget }: { snap: ClientSnapshot | null
     );
 }
 
-function Connected({ state, send }: { state: RemoteState | null; send: Send }) {
+function Connected({ state, send, query }: {
+    state: RemoteState | null;
+    send: Send;
+    query: (cmd: CatalogCommand) => Promise<CommandResult>;
+}) {
     if (!state) return <div class="center"><div class="spinner" /></div>;
     if (state.page === 'none') {
         return (
@@ -204,11 +224,14 @@ function Connected({ state, send }: { state: RemoteState | null; send: Send }) {
         );
     }
     if (state.page === 'watch' && state.player) return <PlayerView p={state.player} fullscreen={state.fullscreen} send={send} />;
+    if (state.page === 'browse' || state.page === 'search' || state.page === 'title' || state.page === 'profiles') {
+        return <CatalogView state={state} send={send} query={query} />;
+    }
     return (
         <div class="center">
             <p class="muted">Am PC geöffnet</p>
             <h2>{PAGE_NAMES[state.page]}</h2>
-            <p class="muted">Titel auswählen und starten – die Katalogansicht auf dem Handy kommt im nächsten Schritt.</p>
+            {state.page === 'login' && <p class="muted">Bitte am PC bei Netflix anmelden.</p>}
             <div class="row">
                 <IconButton icon="home" label="Übersicht" onClick={() => send({ type: 'app.browse' })} />
                 <IconButton icon="tv" label="In den Vordergrund" onClick={() => send({ type: 'app.openNetflix' })} />

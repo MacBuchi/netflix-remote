@@ -243,7 +243,7 @@ export class RemoteClient {
                 this.set({ state: msg.state });
                 break;
             case 'response':
-                this.pending.get(msg.re)?.({ ok: msg.ok, error: msg.error });
+                this.pending.get(msg.re)?.({ ok: msg.ok, error: msg.error, data: msg.data });
                 this.pending.delete(msg.re);
                 break;
             case 'error':

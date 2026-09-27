@@ -122,11 +122,11 @@ async function refreshState() {
     if ((await getClients()) === 0) return;
     const tab = await targetTab();
     if (!tab?.id) {
-        toOffscreen({ target: 'offscreen', type: 'state', state: { page: 'none', fullscreen: false, player: null } });
+        toOffscreen({ target: 'offscreen', type: 'state', state: { page: 'none', location: '', fullscreen: false, player: null } });
         return;
     }
     await toContent(tab.id, { target: 'content', type: 'pushState' }).catch(() =>
-        forwardState(tab, { page: 'other', player: null }),
+        forwardState(tab, { page: 'other', location: '', player: null }),
     );
 }
 

@@ -164,10 +164,63 @@ try {
         await hotel.close();
     });
 
+    await step('catalog: profile gate is shown on the phone and picking a profile works', async () => {
+        await netflix.goto('https://www.netflix.com/browse');
+        await phone.getByRole('heading', { name: 'Wer schaut gerade?' }).waitFor({ timeout: 15_000 });
+        await phone.getByRole('button', { name: 'Kinder' }).click();
+        await netflix.waitForFunction(() => sessionStorage.getItem('profile') === 'Kinder');
+    });
+
+    await step('catalog: rows with titles appear on the phone', async () => {
+        await phone.getByRole('heading', { name: 'Weiterschauen' }).waitFor({ timeout: 15_000 });
+        await phone.getByRole('button', { name: 'Stranger Things' }).waitFor();
+        await phone.getByRole('heading', { name: 'Derzeit beliebt' }).waitFor();
+        if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-catalog.png') });
+    });
+
+    await step('catalog: tapping a title and "Abspielen" starts it on the PC', async () => {
+        await phone.getByRole('button', { name: 'Stranger Things' }).click();
+        await phone.getByRole('dialog', { name: 'Stranger Things' }).getByRole('button', { name: 'Abspielen' }).click();
+        await netflix.waitForURL(/\/watch\/80057281/, { timeout: 10_000 });
+        await phone.getByRole('button', { name: 'Pause' }).waitFor({ timeout: 10_000 });
+    });
+
+    await step('catalog: search from the phone', async () => {
+        await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click();
+        await phone.getByLabel('Suche').waitFor({ timeout: 15_000 });
+        await phone.getByLabel('Suche').fill('Dark');
+        await phone.getByLabel('Suche').press('Enter');
+        await netflix.waitForURL(/\/search\?q=Dark/, { timeout: 10_000 });
+        await phone.getByRole('button', { name: 'Dark – Serie' }).waitFor({ timeout: 15_000 });
+    });
+
+    await step('catalog: details with episodes, tapping an episode plays it', async () => {
+        await phone.getByRole('button', { name: 'Dark – Serie' }).click();
+        await phone.getByRole('button', { name: 'Details & Folgen' }).click();
+        await netflix.waitForURL(/jbv=7002/, { timeout: 10_000 });
+        await phone.getByText('Ein Kind verschwindet.').waitFor({ timeout: 15_000 });
+        if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-detail.png') });
+        await phone.getByRole('button', { name: /2\. Lügen/ }).click();
+        await netflix.waitForURL(/\/watch\/90002/, { timeout: 10_000 });
+    });
+
+    await step('catalog: section chips navigate the PC', async () => {
+        await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click();
+        await phone.getByRole('button', { name: 'Serien', exact: true }).click({ timeout: 15_000 });
+        await netflix.waitForURL(/\/browse\/genre\/83/, { timeout: 10_000 });
+        await phone.getByRole('heading', { name: 'Serien-Tipps' }).waitFor({ timeout: 15_000 });
+    });
+
     await step('closing Netflix shows "open Netflix", which reopens it', async () => {
         await netflix.close();
         await phone.getByRole('button', { name: 'Netflix am PC öffnen' }).click();
-        await phone.getByText('Titel auswählen und starten').waitFor({ timeout: 10_000 });
+        // Depending on whether the new tab gets routed to the fake page, the phone shows the
+        // profile gate or the generic "open on the PC" view; either means Netflix is back.
+        await phone
+            .getByText('Am PC geöffnet')
+            .or(phone.getByRole('heading', { name: 'Wer schaut gerade?' }))
+            .first()
+            .waitFor({ timeout: 10_000 });
         // Tabs opened by the extension bypass the test's routing: depending on network access they show an
         // error page or the real netflix.com (which redirects to /login). Only check that a Netflix tab exists.
         const urls = await sw.evaluate(async () => (await chrome.tabs.query({})).map((t) => t.pendingUrl || t.url));

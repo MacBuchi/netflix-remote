@@ -2,10 +2,60 @@
 <html>
 <head><meta charset="utf-8"><title>Netflix</title></head>
 <body>
-    <!-- Minimal stand-in for netflix.com: the internal player API and the data-uia hooks the extension uses. -->
-    <video></video>
-    <div data-uia="video-title"><h4>Dark</h4><span>S1:E3</span><span>Geheimnisse</span></div>
+    <!-- Minimal stand-in for netflix.com, served for every netflix.com URL: the internal player API,
+         the data-uia hooks and a Netflix-like markup for browse rows, profiles, search and title details. -->
     <script>
+        const path = location.pathname;
+        const params = new URLSearchParams(location.search);
+        const img = (name) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#333"/><text x="16" y="100" fill="#fff" font-size="28">${name}</text></svg>`);
+
+        if (path.startsWith('/watch/')) {
+            document.body.innerHTML = `
+                <video></video>
+                <div data-uia="video-title"><h4>Dark</h4><span>S1:E3</span><span>Geheimnisse</span></div>`;
+        } else if (path.startsWith('/browse') && !sessionStorage.getItem('profile') && !params.has('jbv')) {
+            document.body.innerHTML = `<ul class="choose-profile">
+                ${['Marcus', 'Kinder'].map((n) => `<li><a class="profile-link" data-uia="profile-link" href="#"><img src="${img(n)}"><span class="profile-name">${n}</span></a></li>`).join('')}
+            </ul>`;
+            document.querySelectorAll('[data-uia="profile-link"]').forEach((a) =>
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    sessionStorage.setItem('profile', a.textContent.trim());
+                    location.reload();
+                }),
+            );
+        } else {
+            const card = (id, name) => `<div class="slider-item"><div class="title-card-container"><div class="title-card">
+                <a href="/watch/${id}?tctx=0" aria-label="${name}"><div class="boxart-container"><img class="boxart-image" src="${img(name)}"></div></a>
+            </div></div></div>`;
+            const row = (title, items) => `<div class="lolomoRow" data-list-context="x"><h2 class="rowHeader"><div class="row-header-title">${title}</div></h2>${items.map(([id, n]) => card(id, n)).join('')}</div>`;
+            if (path.startsWith('/search')) {
+                const q = params.get('q');
+                document.body.innerHTML = `<div class="search-gallery">${card('7001', q + ' – Film')}${card('7002', q + ' – Serie')}</div>`;
+            } else {
+                document.body.innerHTML =
+                    `<div class="billboard-row"><a href="/watch/1" aria-label="Abspielen">Abspielen</a></div>` +
+                    row('Weiterschauen', [['80100172', 'Dark'], ['80057281', 'Stranger Things']]) +
+                    row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Squid Game']]);
+                if (params.has('jbv')) {
+                    document.body.insertAdjacentHTML('beforeend', `
+                        <div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">
+                            <img class="previewModal--player-titleTreatment-logo" alt="Dark" src="${img('Dark')}">
+                            <a data-uia="play-button" href="/watch/${params.get('jbv')}">Abspielen</a>
+                            <p class="preview-modal-synopsis">Ein Kind verschwindet.</p>
+                            <button data-uia="dropdown-toggle">Staffel 1</button>
+                            ${['Geheimnisse', 'Lügen', 'Vergangenheit'].map((t, i) => `
+                                <div class="titleCardList--container episode-item" data-uia="titleCard--container">
+                                    <a href="/watch/9000${i + 1}"><img src="${img('Folge ' + (i + 1))}"></a>
+                                    <div class="titleCard-title_index">${i + 1}</div>
+                                    <div class="titleCard-title_text">${t}</div>
+                                    <p class="titleCard-synopsis">Folge ${i + 1} von Dark.</p>
+                                </div>`).join('')}
+                        </div>`);
+                }
+            }
+        }
+
         const audio = [{ trackId: 'a-de', displayName: 'Deutsch' }, { trackId: 'a-en', displayName: 'English' }];
         const text = [{ trackId: 't-off', displayName: 'Aus', isNoneTrack: true }, { trackId: 't-de', displayName: 'Deutsch' }];
         const fake = (window.fake = {
@@ -25,12 +75,11 @@
             getAudioTrackList: () => audio, getAudioTrack: () => fake.audio, setAudioTrack: (t) => (fake.audio = t),
             getTimedTextTrackList: () => text, getTimedTextTrack: () => fake.text, setTimedTextTrack: (t) => (fake.text = t),
         };
-        const isWatch = location.pathname.startsWith('/watch/');
+        const isWatch = path.startsWith('/watch/');
         window.netflix = { appContext: { state: { playerApp: { getAPI: () => ({ videoPlayer: {
             getAllPlayerSessionIds: () => (isWatch ? ['watch-1'] : []),
             getVideoPlayerBySessionId: () => player,
         } }) } } } };
-        if (!isWatch) document.body.innerHTML = '<h1>Browse</h1>';
     </script>
 </body>
 </html>
