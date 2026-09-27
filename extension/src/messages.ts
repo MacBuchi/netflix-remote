@@ -11,6 +11,8 @@ export interface Config {
     pcName: string;
     /** PeerJS broker URL, empty for the public PeerJS cloud. */
     broker: string;
+    /** MQTT relay for networks that block direct connections, empty for the default public relay. */
+    relay: string;
     /** Where the phone app is hosted; the QR code links there. */
     remoteUrl: string;
 }
@@ -24,7 +26,7 @@ export interface TabState {
 
 export type SwMsg =
     | { target: 'sw'; type: 'getConfig' }
-    | { target: 'sw'; type: 'updateConfig'; patch: Partial<Pick<Config, 'pcName' | 'broker' | 'remoteUrl'>> }
+    | { target: 'sw'; type: 'updateConfig'; patch: Partial<Pick<Config, 'pcName' | 'broker' | 'relay' | 'remoteUrl'>> }
     | { target: 'sw'; type: 'resetPairing' }
     | { target: 'sw'; type: 'command'; cmd: Command }
     | { target: 'sw'; type: 'clients'; count: number }
@@ -33,6 +35,7 @@ export type SwMsg =
 
 export interface OffscreenStatus {
     broker: 'connecting' | 'online' | 'offline';
+    relay: 'connecting' | 'online' | 'offline';
     error: string | null;
     devices: string[];
 }

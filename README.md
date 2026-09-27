@@ -25,8 +25,12 @@ npm run build:ext
 Dann `chrome://extensions` öffnen → „Entwicklermodus“ einschalten → „Entpackte Erweiterung laden“ →
 Ordner `extension/dist` wählen.
 
-Ohne eigenen Build: Im Tab „Actions“ des Repos beim letzten CI-Lauf das Artefakt
-`couch-remote-extension` herunterladen, entpacken und diesen Ordner laden.
+Ohne eigenen Build: Unter [Releases](https://github.com/MacBuchi/netflix-remote/releases/latest)
+die ZIP-Datei herunterladen, entpacken und diesen Ordner laden. Für ein Update den neuen Ordner an
+dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.
+
+Neue Version veröffentlichen: `version` in `extension/static/manifest.json` erhöhen, mergen, dann
+`git tag vX.Y.Z && git push origin vX.Y.Z` – der Workflow „Release“ baut und veröffentlicht die ZIP.
 
 ### 2. Handy-App veröffentlichen (einmalig)
 
@@ -54,6 +58,10 @@ Handy (PWA) ──WebRTC-Datenkanal──► Extension: Offscreen-Dokument ─�
 
 - **Verbindung:** Handy und PC finden sich über den öffentlichen PeerJS-Server (kein Konto nötig) und
   sprechen dann direkt per WebRTC miteinander – im selben WLAN bleiben die Befehle im lokalen Netz.
+- **Gesperrte WLANs (Hotel, Gäste-WLAN):** Parallel läuft immer ein Relay-Weg über einen öffentlichen
+  MQTT-Server (HiveMQ). Die Nachrichten sind mit dem Schlüssel aus dem QR-Code Ende-zu-Ende verschlüsselt
+  (AES-GCM), auch die Themen-Namen sind daraus abgeleitet; der Server sieht nur Datensalat. Klappt die
+  Direktverbindung, wechselt die App automatisch darauf. Oben rechts zeigt sie „Direkt“ oder „Relay“.
   Ein eigener Server lässt sich im Popup unter „Erweitert“ eintragen (`npx peerjs --port 9000`, von
   der Handy-App aus per `wss://` erreichbar, weil die App über HTTPS läuft).
 - **Sicherheit:** Der QR-Code enthält einen geheimen Schlüssel (im `#`-Teil der Adresse, er geht nie an

@@ -36,12 +36,14 @@ describe('parseCommand', () => {
 
 describe('parsePhoneMsg', () => {
     it('parses hello and request, from objects or JSON', () => {
-        expect(parsePhoneMsg({ v: 1, type: 'hello', key: 'k', device: 'Pixel' })).toEqual({
+        expect(parsePhoneMsg({ v: 1, type: 'hello', key: 'k', device: 'Pixel', phoneId: 'abc123' })).toEqual({
             v: 1,
             type: 'hello',
             key: 'k',
             device: 'Pixel',
+            phoneId: 'abc123',
         });
+        expect(parsePhoneMsg({ v: 1, type: 'ping' })).toEqual({ v: 1, type: 'ping' });
         expect(parsePhoneMsg('{"v":1,"type":"request","id":"a","cmd":{"type":"player.pause"}}')).toEqual({
             v: 1,
             type: 'request',
@@ -58,7 +60,7 @@ describe('parsePhoneMsg', () => {
 });
 
 describe('pairing link', () => {
-    const pairing = { peerId: 'nfr-0123456789abcdef01234567', key: '0123456789abcdef0123456789abcdef', name: 'Mac im Büro', broker: '' };
+    const pairing = { peerId: 'nfr-0123456789abcdef01234567', key: '0123456789abcdef0123456789abcdef', name: 'Mac im Büro', broker: '', relay: '' };
 
     it('round-trips through the QR url and keeps the secret in the hash', () => {
         const url = buildPairingUrl('https://example.github.io/netflix-remote/', pairing);

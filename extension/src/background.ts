@@ -16,6 +16,7 @@ async function getConfig(): Promise<Config> {
         key: randomId(16),
         pcName: 'Netflix-PC',
         broker: '',
+        relay: '',
         remoteUrl: DEFAULT_REMOTE_URL,
         ...config,
     };

@@ -1,0 +1,42 @@
+# Publishes the Chrome extension as a GitHub Release.
+# Bump "version" in extension/static/manifest.json, then push a matching tag:
+#   git tag v2.1.0 && git push origin v2.1.0
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tag must match the extension version
+        run: |
+          version="v$(node -p "require('./extension/static/manifest.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match manifest version $version"
+            exit 1
+          fi
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:ext
+      - name: Package extension
+        run: cd extension/dist && zip -r "../../couch-remote-$GITHUB_REF_NAME.zip" . -x '*.map'
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: couch-remote-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          body: |
+            **Installation:** ZIP herunterladen und entpacken, `chrome://extensions` öffnen,
+            Entwicklermodus einschalten, „Entpackte Erweiterung laden“ und den entpackten Ordner wählen.
+            Update: neuen Ordner an dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.

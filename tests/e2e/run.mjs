@@ -7,7 +7,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, resolve } from 'node:path';
+import { Aedes } from 'aedes';
 import { PeerServer } from 'peer';
+import { WebSocketServer, createWebSocketStream } from 'ws';
 import { chromium } from 'playwright';
 
 const ROOT = resolve(import.meta.dirname, '../..');
@@ -15,6 +17,7 @@ const EXT = join(ROOT, 'extension/dist');
 const REMOTE = join(ROOT, 'remote/dist');
 const PEER_PORT = 9123;
 const WEB_PORT = 9124;
+const MQTT_PORT = 9125;
 const SHOTS = process.env.E2E_SCREENSHOTS;
 
 const fakeNetflix = await readFile(join(import.meta.dirname, 'fake-netflix.html'), 'utf8');
@@ -32,6 +35,11 @@ const web = createServer(async (req, res) => {
     }
 }).listen(WEB_PORT, '127.0.0.1');
 
+// Local stand-in for the public MQTT relay.
+const aedes = await Aedes.createBroker();
+const mqttServer = new WebSocketServer({ host: '127.0.0.1', port: MQTT_PORT, path: '/mqtt' });
+mqttServer.on('connection', (ws) => aedes.handle(createWebSocketStream(ws)));
+
 const webrtcArgs = ['--disable-features=WebRtcHideLocalIpsWithMdns'];
 const pc = await chromium.launchPersistentContext('', {
     channel: 'chromium',
@@ -39,6 +47,8 @@ const pc = await chromium.launchPersistentContext('', {
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, ...webrtcArgs],
 });
 const phoneBrowser = await chromium.launch({ args: webrtcArgs });
+// A phone in a network that blocks direct connections: WebRTC may only use (non-existent) proxies.
+const hotelPhoneBrowser = await chromium.launch({ args: ['--force-webrtc-ip-handling-policy=disable_non_proxied_udp'] });
 
 let failed = false;
 const step = async (name, fn) => {
@@ -65,6 +75,7 @@ try {
         await popup.locator('details summary').click();
         await popup.fill('#remote-url', `http://localhost:${WEB_PORT}/`);
         await popup.fill('#broker', `ws://localhost:${PEER_PORT}/`);
+        await popup.fill('#relay', `ws://127.0.0.1:${MQTT_PORT}/mqtt`);
         await popup.click('#save');
         await popup.fill('#name', 'Test-Mac');
         await popup.locator('#name').dispatchEvent('change');
@@ -78,13 +89,14 @@ try {
     const netflix = await pc.newPage();
     await netflix.goto('https://www.netflix.com/watch/80100172');
 
-    const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker })}`;
+    const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker, r: config.relay })}`;
     const phoneCtx = await phoneBrowser.newContext({ viewport: { width: 400, height: 860 }, isMobile: true, hasTouch: true });
     const phone = await phoneCtx.newPage();
 
-    await step('phone pairs via QR link and connects over WebRTC', async () => {
+    await step('phone pairs via QR link and ends up on the direct WebRTC link', async () => {
         await phone.goto(pairingUrl);
         await phone.locator('.dot.connected').waitFor({ timeout: 20_000 });
+        await phone.locator('.via', { hasText: 'Direkt' }).waitFor({ timeout: 20_000 });
         assert.equal(await phone.locator('.pc-name').textContent(), 'Test-Mac');
         assert.equal(new URL(phone.url()).hash, '', 'secret removed from address bar');
     });
@@ -134,6 +146,24 @@ try {
         assert.equal(await phone.locator('.dot.connected').count(), 1);
     });
 
+    await step('phone in a Wi-Fi that blocks direct connections works through the encrypted relay', async () => {
+        const hotel = await (await hotelPhoneBrowser.newContext({ viewport: { width: 400, height: 860 } })).newPage();
+        await hotel.goto(pairingUrl);
+        await hotel.locator('.via', { hasText: 'Relay' }).waitFor({ timeout: 20_000 });
+        await hotel.getByRole('heading', { name: 'Dark' }).waitFor({ timeout: 15_000 });
+        await hotel.getByRole('button', { name: 'Pause' }).click();
+        await netflix.waitForFunction(() => window.fake.paused === true);
+        await hotel.getByRole('button', { name: 'Abspielen' }).waitFor({ timeout: 10_000 });
+        await hotel.getByRole('button', { name: 'Abspielen' }).click();
+        await netflix.waitForFunction(() => window.fake.paused === false);
+        if (SHOTS) await hotel.screenshot({ path: join(SHOTS, 'remote-relay.png') });
+        // Direct attempts keep failing in this network, yet the app stays connected.
+        await hotel.waitForTimeout(3000);
+        assert.equal(await hotel.locator('.dot.connected').count(), 1);
+        assert.equal(await hotel.locator('.via').textContent(), 'Relay', 'direct link must stay blocked in this test');
+        await hotel.close();
+    });
+
     await step('closing Netflix shows "open Netflix", which reopens it', async () => {
         await netflix.close();
         await phone.getByRole('button', { name: 'Netflix am PC öffnen' }).click();
@@ -156,6 +186,9 @@ try {
 } finally {
     await pc.close();
     await phoneBrowser.close();
+    await hotelPhoneBrowser.close();
+    mqttServer.close();
+    aedes.close();
     web.close();
     peerServer.close?.();
 }

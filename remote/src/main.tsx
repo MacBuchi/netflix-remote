@@ -142,6 +142,11 @@ function Header({ pairings, active, snap, onSwitch }: {
             ) : (
                 <span class="pc-name">{snap?.pcName ?? active.name}</span>
             )}
+            {snap?.status === 'connected' && (
+                <span class="via" title={snap.via === 'direct' ? 'Direkte Verbindung im Netzwerk' : 'Verschlüsselt über Relay-Server'}>
+                    {snap.via === 'direct' ? 'Direkt' : 'Relay'}
+                </span>
+            )}
         </header>
     );
 }
@@ -165,8 +170,10 @@ function Onboarding() {
 const STATUS_TEXT: Record<ClientSnapshot['status'], string> = {
     connecting: 'Verbinde …',
     connected: 'Verbunden',
-    'pc-offline': 'PC nicht erreichbar. Läuft Chrome auf dem PC?',
-    'broker-offline': 'Keine Verbindung zum Vermittlungs-Server. Internet am Handy prüfen.',
+    'pc-offline': 'PC nicht erreichbar. Läuft Chrome auf dem PC? Wurde dort „Neu koppeln“ gedrückt, QR-Code neu scannen.',
+    blocked:
+        'PC gefunden, aber das WLAN blockiert die direkte Verbindung (typisch für Hotel- und Gäste-WLAN), und der Relay-Server ist gerade nicht erreichbar. Neuer Versuch läuft …',
+    offline: 'Keine Verbindung zum Internet. Netz am Handy prüfen.',
     'auth-failed': 'Kopplung ungültig.',
 };
 

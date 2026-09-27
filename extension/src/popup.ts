@@ -22,17 +22,19 @@ async function render(config: Config) {
         key: config.key,
         name: config.pcName,
         broker: config.broker,
+        relay: config.relay,
     });
     await QRCode.toCanvas($('qr'), pairingUrl, { width: 216, margin: 0, errorCorrectionLevel: 'M' });
     setField('name', config.pcName);
     setField('remote-url', config.remoteUrl);
     setField('broker', config.broker);
+    setField('relay', config.relay);
 }
 
-const BROKER_TEXT: Record<OffscreenStatus['broker'], string> = {
-    connecting: 'Verbinde mit Vermittlungs-Server …',
-    online: 'Bereit – wartet auf das Handy',
-    offline: 'Vermittlungs-Server nicht erreichbar, neuer Versuch läuft …',
+const LINK_TEXT: Record<OffscreenStatus['broker'], string> = {
+    connecting: 'verbinde …',
+    online: 'bereit',
+    offline: 'nicht erreichbar, neuer Versuch läuft',
 };
 
 async function pollStatus() {
@@ -40,8 +42,11 @@ async function pollStatus() {
         .sendMessage({ target: 'offscreen', type: 'status' } satisfies OffscreenMsg)
         .catch(() => undefined) as OffscreenStatus | undefined;
     if (!s) return;
-    $('dot').className = `dot ${s.broker}`;
-    $('status').textContent = BROKER_TEXT[s.broker] + (s.error && s.broker !== 'online' ? ` (${s.error})` : '');
+    const ready = s.broker === 'online' || s.relay === 'online';
+    $('dot').className = `dot ${ready ? 'online' : s.broker === 'connecting' || s.relay === 'connecting' ? '' : 'offline'}`;
+    $('status').textContent = ready ? 'Bereit – wartet auf das Handy' : 'Verbinde …';
+    $('links').textContent =
+        `Direkt: ${LINK_TEXT[s.broker]}${s.error && s.broker !== 'online' ? ` (${s.error})` : ''} · Relay: ${LINK_TEXT[s.relay]}`;
     $('devices').textContent = s.devices.length ? `Verbunden: ${s.devices.join(', ')}` : '';
 }
 
@@ -51,6 +56,7 @@ async function save() {
         pcName: $<HTMLInputElement>('name').value.trim() || 'Netflix-PC',
         remoteUrl: $<HTMLInputElement>('remote-url').value.trim() || DEFAULT_REMOTE_URL,
         broker: $<HTMLInputElement>('broker').value.trim(),
+        relay: $<HTMLInputElement>('relay').value.trim(),
     };
     await render(await toSw<Config>({ target: 'sw', type: 'updateConfig', patch }));
 }

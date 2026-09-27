@@ -21,6 +21,7 @@
         details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
         summary { cursor: pointer; color: var(--muted); }
         #devices { color: var(--fg); }
+        .small { font-size: 12px; }
     </style>
 </head>
 <body>
@@ -28,6 +29,7 @@
     <canvas id="qr" width="232" height="232"></canvas>
     <p>QR-Code mit der Handy-Kamera scannen. Die Kopplung bleibt gespeichert; das Handy verbindet sich danach automatisch.</p>
     <p id="status">Verbinde …</p>
+    <p id="links" class="small"></p>
     <p id="devices"></p>
 
     <label for="name">Name dieses Rechners</label>
@@ -44,6 +46,8 @@
         <input id="remote-url" type="url">
         <label for="broker">Vermittlungs-Server (leer = PeerJS Cloud)</label>
         <input id="broker" placeholder="wss://host:443/">
+        <label for="relay">Relay für gesperrte WLANs (leer = öffentliches HiveMQ, Ende-zu-Ende verschlüsselt)</label>
+        <input id="relay" placeholder="wss://broker.hivemq.com:8884/mqtt">
         <div class="row"><button id="save" class="primary">Speichern</button></div>
     </details>
     <script src="popup.js"></script>
