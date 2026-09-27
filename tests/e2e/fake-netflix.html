@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Netflix</title></head>
+<body>
+    <!-- Minimal stand-in for netflix.com: the internal player API and the data-uia hooks the extension uses. -->
+    <video></video>
+    <div data-uia="video-title"><h4>Dark</h4><span>S1:E3</span><span>Geheimnisse</span></div>
+    <script>
+        const audio = [{ trackId: 'a-de', displayName: 'Deutsch' }, { trackId: 'a-en', displayName: 'English' }];
+        const text = [{ trackId: 't-off', displayName: 'Aus', isNoneTrack: true }, { trackId: 't-de', displayName: 'Deutsch' }];
+        const fake = (window.fake = {
+            t: 600000, vol: 0.5, mute: false, paused: false, skipped: 0, audio: audio[0], text: text[0],
+            showSkip() {
+                const b = document.createElement('button');
+                b.dataset.uia = 'player-skip-intro';
+                b.textContent = 'Intro überspringen';
+                b.onclick = () => { fake.skipped++; b.remove(); };
+                document.body.append(b);
+            },
+        });
+        const player = {
+            play: () => (fake.paused = false), pause: () => (fake.paused = true), isPaused: () => fake.paused,
+            seek: (ms) => (fake.t = ms), getCurrentTime: () => fake.t, getDuration: () => 3000000,
+            getVolume: () => fake.vol, setVolume: (v) => (fake.vol = v), isMuted: () => fake.mute, setMuted: (m) => (fake.mute = m),
+            getAudioTrackList: () => audio, getAudioTrack: () => fake.audio, setAudioTrack: (t) => (fake.audio = t),
+            getTimedTextTrackList: () => text, getTimedTextTrack: () => fake.text, setTimedTextTrack: (t) => (fake.text = t),
+        };
+        const isWatch = location.pathname.startsWith('/watch/');
+        window.netflix = { appContext: { state: { playerApp: { getAPI: () => ({ videoPlayer: {
+            getAllPlayerSessionIds: () => (isWatch ? ['watch-1'] : []),
+            getVideoPlayerBySessionId: () => player,
+        } }) } } } };
+        if (!isWatch) document.body.innerHTML = '<h1>Browse</h1>';
+    </script>
+</body>
+</html>

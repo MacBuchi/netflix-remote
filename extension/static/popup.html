@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <title>Couch Remote</title>
+    <style>
+        :root { color-scheme: dark; --bg: #141414; --fg: #f3f3f3; --muted: #9a9a9a; --accent: #e50914; --line: #2c2c2c; }
+        * { box-sizing: border-box; }
+        body { margin: 0; width: 320px; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
+        h1 { font-size: 16px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+        .dot.online { background: #46d369; }
+        .dot.offline { background: var(--accent); }
+        #qr { display: block; margin: 0 auto 8px; background: #fff; border-radius: 8px; padding: 8px; }
+        p { margin: 8px 0; color: var(--muted); }
+        label { display: block; margin: 12px 0 4px; color: var(--muted); font-size: 12px; }
+        input { width: 100%; padding: 8px; background: #222; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+        .row { display: flex; gap: 8px; margin-top: 12px; }
+        button { flex: 1; padding: 8px; border: 0; border-radius: 6px; background: #333; color: var(--fg); cursor: pointer; }
+        button.primary { background: var(--accent); }
+        details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+        summary { cursor: pointer; color: var(--muted); }
+        #devices { color: var(--fg); }
+    </style>
+</head>
+<body>
+    <h1><span id="dot" class="dot"></span><span>Couch Remote</span></h1>
+    <canvas id="qr" width="232" height="232"></canvas>
+    <p>QR-Code mit der Handy-Kamera scannen. Die Kopplung bleibt gespeichert; das Handy verbindet sich danach automatisch.</p>
+    <p id="status">Verbinde …</p>
+    <p id="devices"></p>
+
+    <label for="name">Name dieses Rechners</label>
+    <input id="name" maxlength="40">
+
+    <div class="row">
+        <button id="copy">Link kopieren</button>
+        <button id="reset">Neu koppeln</button>
+    </div>
+
+    <details>
+        <summary>Erweitert</summary>
+        <label for="remote-url">Adresse der Handy-App</label>
+        <input id="remote-url" type="url">
+        <label for="broker">Vermittlungs-Server (leer = PeerJS Cloud)</label>
+        <input id="broker" placeholder="wss://host:443/">
+        <div class="row"><button id="save" class="primary">Speichern</button></div>
+    </details>
+    <script src="popup.js"></script>
+</body>
+</html>
