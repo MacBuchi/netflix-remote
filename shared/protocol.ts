@@ -16,6 +16,8 @@ export type PlayerCommand =
     | { type: 'player.nextEpisode' }
     | { type: 'player.setAudioTrack'; id: string }
     | { type: 'player.setTextTrack'; id: string }
+    /** Playback speed, 1 = normal. */
+    | { type: 'player.setRate'; rate: number }
     | { type: 'player.exit' };
 
 export type AppCommand =
@@ -53,7 +55,9 @@ export type CatalogCommand =
     | { type: 'catalog.search'; q: string }
     | { type: 'catalog.nav'; section: CatalogSection }
     | { type: 'catalog.back' }
-    | { type: 'catalog.debug' };
+    | { type: 'catalog.debug' }
+    /** Sound of the trailer previews on browse pages and in the details (not the player). */
+    | { type: 'catalog.previewSound'; muted: boolean };
 
 export type Command = PlayerCommand | AppCommand | CatalogCommand;
 
@@ -105,6 +109,8 @@ export interface Catalog {
     detail: TitleDetail | null;
     /** The large recommendation on top of browse pages; missing from extensions before 2.2.4. */
     billboard?: Billboard | null;
+    /** Whether the trailer preview is muted; null when no preview plays (missing before 2.2.7). */
+    previewMuted?: boolean | null;
 }
 
 /** Netflix's "billboard": the full-width recommendation whose trailer starts on the PC. */
@@ -138,6 +144,8 @@ export interface PlayerState {
     audioTrackId: string | null;
     textTracks: Track[];
     textTrackId: string | null;
+    /** Playback speed; missing from extensions before 2.2.7. */
+    playbackRate?: number;
 }
 
 export type PageKind = 'none' | 'profiles' | 'browse' | 'title' | 'search' | 'watch' | 'login' | 'other';
@@ -245,6 +253,8 @@ export function parseCommand(x: unknown): Command | null {
             return isInt(x.index, 0, 500) ? { type: x.type, index: x.index } : null;
         case 'catalog.search':
             return isStr(x.q, 100) && x.q.trim() ? { type: x.type, q: x.q.trim() } : null;
+        case 'catalog.previewSound':
+            return typeof x.muted === 'boolean' ? { type: x.type, muted: x.muted } : null;
         case 'catalog.nav':
             return typeof x.section === 'string' && CATALOG_SECTIONS.includes(x.section as CatalogSection)
                 ? { type: x.type, section: x.section as CatalogSection }
@@ -257,6 +267,8 @@ export function parseCommand(x: unknown): Command | null {
             return isNum(x.volume) ? { type: x.type, volume: Math.min(1, Math.max(0, x.volume)) } : null;
         case 'player.setMuted':
             return typeof x.muted === 'boolean' ? { type: x.type, muted: x.muted } : null;
+        case 'player.setRate':
+            return isNum(x.rate) && x.rate >= 0.25 && x.rate <= 3 ? { type: x.type, rate: Math.round(x.rate * 100) / 100 } : null;
         case 'player.setAudioTrack':
         case 'player.setTextTrack':
             return isStr(x.id) ? { type: x.type, id: x.id } : null;

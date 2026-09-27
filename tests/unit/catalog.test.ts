@@ -113,6 +113,33 @@ describe('readCatalog', () => {
         expect(readCatalog(document).billboard).toBeNull();
     });
 
+    it('reports and switches the trailer preview sound with Netflix\'s own button', async () => {
+        document.body.innerHTML = `<div class="billboard-row"><video></video>
+            <button data-uia="audio-toggle-unmuted" aria-label="Ton aus"></button></div>` + BROWSE;
+        const video = document.querySelector('video')!;
+        const button = document.querySelector('button')!;
+        button.addEventListener('click', () => {
+            video.muted = !video.muted;
+            button.dataset.uia = video.muted ? 'audio-toggle-muted' : 'audio-toggle-unmuted';
+        });
+        expect(readCatalog(document).previewMuted).toBe(false);
+        expect(await runCatalogCommand(document, { type: 'catalog.previewSound', muted: true })).toEqual({ ok: true });
+        expect(video.muted).toBe(true);
+        expect(readCatalog(document).previewMuted).toBe(true);
+        // Already muted: nothing to click.
+        await runCatalogCommand(document, { type: 'catalog.previewSound', muted: true });
+        expect(video.muted).toBe(true);
+    });
+
+    it('mutes previews directly when there is no button, and reports none without a preview', async () => {
+        document.body.innerHTML = BROWSE;
+        expect(readCatalog(document).previewMuted).toBeNull();
+        expect((await runCatalogCommand(document, { type: 'catalog.previewSound', muted: true })).ok).toBe(false);
+        document.body.insertAdjacentHTML('afterbegin', '<video></video>');
+        await runCatalogCommand(document, { type: 'catalog.previewSound', muted: true });
+        expect(document.querySelector('video')!.muted).toBe(true);
+    });
+
     it('reads profiles on the profile gate', () => {
         document.body.innerHTML = `
             <ul class="choose-profile">

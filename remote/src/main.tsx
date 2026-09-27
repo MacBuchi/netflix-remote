@@ -14,7 +14,7 @@ import { CatalogView } from './catalog';
 import { RemoteClient, deviceName, type ClientSnapshot } from './client';
 import { Icon, type IconName } from './icons';
 import { activePeerId, consumePairingFromUrl, loadPairings, removePairing, setActive } from './pairings';
-import { setOmdbKey, testOmdbKey, useOmdbKey, type RatingsError } from './ratings';
+import { extractOmdbKey, setOmdbKey, testOmdbKey, useOmdbKey, type RatingsError } from './ratings';
 import './style.css';
 
 type Send = (cmd: Command) => void;
@@ -195,13 +195,12 @@ function Settings({ onClose }: { onClose: () => void }) {
     const unchanged = !!saved && key.trim() === saved;
 
     // Saving always runs the function test, so a working key is confirmed with a real answer.
-    const save = async (e: Event) => {
-        e.preventDefault();
+    const check = async (candidate: string) => {
         setBusy(true);
         setResult(null);
         try {
-            const { title, ratings } = await testOmdbKey(key);
-            setOmdbKey(key);
+            const { title, ratings } = await testOmdbKey(candidate);
+            setOmdbKey(candidate);
             const imdb = ratings.imdb ? ` – IMDb ${ratings.imdb.replace('.', ',')}` : '';
             setResult({ ok: true, text: `Funktioniert: „${title}“${imdb}. Bewertungen erscheinen jetzt bei Titeln.` });
         } catch (err) {
@@ -209,6 +208,25 @@ function Settings({ onClose }: { onClose: () => void }) {
         } finally {
             setBusy(false);
         }
+    };
+    const save = (e: Event) => {
+        e.preventDefault();
+        void check(extractOmdbKey(key).key);
+    };
+    // Pasting OMDb's link or e-mail text: take the key out of it and apply it right away.
+    const onInput = (value: string) => {
+        const found = extractOmdbKey(value);
+        if (found.activation) {
+            setKey('');
+            setResult({ ok: false, text: 'Das ist der Aktivierungslink – bitte im Browser öffnen. Der Schlüssel steht in der E-Mail darüber (8 Zeichen) oder im Beispiel-Link mit „apikey=“.' });
+            return;
+        }
+        if (found.fromUrl || (found.key !== value.trim() && found.key)) {
+            setKey(found.key);
+            void check(found.key);
+            return;
+        }
+        setKey(value);
     };
 
     return (
@@ -228,7 +246,10 @@ function Settings({ onClose }: { onClose: () => void }) {
                         öffnen, „FREE! (1,000 daily limit)“ wählen, E-Mail-Adresse und Namen eintragen, absenden.
                     </li>
                     <li>In der E-Mail von OMDb den Aktivierungslink antippen – erst dann gilt der Schlüssel.</li>
-                    <li>Den Schlüssel aus der E-Mail (8 Zeichen) hier eintragen und „Speichern & testen“ tippen.</li>
+                    <li>
+                        Den Schlüssel aus der E-Mail (8 Zeichen) hier eintragen und „Speichern & testen“ tippen – oder einfach
+                        den Beispiel-Link aus der E-Mail einfügen, der Schlüssel wird dann automatisch übernommen und getestet.
+                    </li>
                 </ol>
                 <form class="key-form" onSubmit={save}>
                     <input
@@ -238,7 +259,7 @@ function Settings({ onClose }: { onClose: () => void }) {
                         autocomplete="off"
                         autocapitalize="off"
                         spellcheck={false}
-                        onInput={(e) => setKey((e.target as HTMLInputElement).value)}
+                        onInput={(e) => onInput((e.target as HTMLInputElement).value)}
                     />
                     <button class="btn primary" disabled={busy || !key.trim()}>
                         {busy ? 'Teste …' : unchanged ? 'Erneut testen' : 'Speichern & testen'}
@@ -358,6 +379,9 @@ function IconButton({ icon, label, onClick, big, disabled }: {
     );
 }
 
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const formatRate = (rate: number) => `${String(rate).replace('.', ',')}×`;
+
 function PlayerView({ p, fullscreen, send }: { p: PlayerState; fullscreen: boolean; send: Send }) {
     const [dragMs, setDragMs] = useState<number | null>(null);
     const pos = dragMs ?? p.positionMs;
@@ -453,6 +477,22 @@ function PlayerView({ p, fullscreen, send }: { p: PlayerState; fullscreen: boole
                             </select>
                         </label>
                     )}
+                </div>
+            )}
+
+            {p.playbackRate !== undefined && (
+                <div class="speed" role="group" aria-label="Geschwindigkeit">
+                    <span class="speed-label">Tempo</span>
+                    {SPEEDS.map((rate) => (
+                        <button
+                            class={Math.abs(p.playbackRate! - rate) < 0.01 ? 'speed-btn active' : 'speed-btn'}
+                            aria-pressed={Math.abs(p.playbackRate! - rate) < 0.01}
+                            aria-label={`Geschwindigkeit ${formatRate(rate)}`}
+                            onClick={() => send({ type: 'player.setRate', rate })}
+                        >
+                            {formatRate(rate)}
+                        </button>
+                    ))}
                 </div>
             )}
 

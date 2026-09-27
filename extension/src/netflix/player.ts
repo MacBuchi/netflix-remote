@@ -34,6 +34,8 @@ export interface NfPlayer {
     getTimedTextTrackList?(): NfTrack[];
     getTimedTextTrack?(): NfTrack | undefined;
     setTimedTextTrack?(t: NfTrack): void;
+    getPlaybackRate?(): number;
+    setPlaybackRate?(rate: number): void;
 }
 
 type Win = Window & { netflix?: any };
@@ -77,6 +79,8 @@ function mapTracks(list: NfTrack[] | undefined): Track[] {
 
 export class PlayerAdapter {
     private lastTitle = { id: '', title: '', subtitle: '' };
+    /** Speed chosen from the phone; re-applied when Netflix resets the video (e.g. after buffering). */
+    private rate: number | null = null;
 
     constructor(private win: Win) {}
 
@@ -119,6 +123,7 @@ export class PlayerAdapter {
         if (!p && !v) return null;
         const { title, subtitle } = this.readTitle(p);
         const skip = first(this.doc, SEL.skip);
+        if (this.rate !== null && v && Math.abs(v.playbackRate - this.rate) > 0.01) v.playbackRate = this.rate;
         return {
             title,
             subtitle,
@@ -133,6 +138,7 @@ export class PlayerAdapter {
             audioTrackId: call(() => p?.getAudioTrack?.()?.trackId ?? null, null),
             textTracks: mapTracks(call(p?.getTimedTextTrackList?.bind(p), [])),
             textTrackId: call(() => p?.getTimedTextTrack?.()?.trackId ?? null, null),
+            playbackRate: v ? v.playbackRate : call(p?.getPlaybackRate?.bind(p), 1),
         };
     }
 
@@ -172,6 +178,8 @@ export class PlayerAdapter {
                     return this.setTrack(p?.getAudioTrackList?.bind(p), p?.setAudioTrack?.bind(p), cmd.id);
                 case 'player.setTextTrack':
                     return this.setTrack(p?.getTimedTextTrackList?.bind(p), p?.setTimedTextTrack?.bind(p), cmd.id);
+                case 'player.setRate':
+                    return this.setRate(p, v, cmd.rate);
                 case 'player.exit': {
                     const back = first(this.doc, SEL.back);
                     if (back) back.click();
@@ -200,6 +208,14 @@ export class PlayerAdapter {
         if (!p?.seek) return { ok: false, error: 'Spulen nicht möglich (Netflix-Player-API fehlt)' };
         const dur = call(p.getDuration?.bind(p), Infinity);
         p.seek(Math.max(0, Math.min(ms, dur - 1000)));
+        return { ok: true };
+    }
+
+    private setRate(p: NfPlayer | null, v: HTMLVideoElement | null, rate: number): CommandResult {
+        if (!p?.setPlaybackRate && !v) return { ok: false, error: 'Geschwindigkeit lässt sich nicht einstellen' };
+        this.rate = rate === 1 ? null : rate;
+        call(() => p?.setPlaybackRate?.(rate), undefined);
+        if (v && Math.abs(v.playbackRate - rate) > 0.01) v.playbackRate = rate;
         return { ok: true };
     }
 

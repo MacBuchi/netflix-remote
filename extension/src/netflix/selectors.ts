@@ -36,6 +36,13 @@ export const SEL = {
     billboardLogo: ['[data-uia="billboard-title"] img', '.billboard-title img', 'img.title-logo'],
     billboardSynopsis: ['[data-uia="billboard-synopsis"]', '.billboard-description .synopsis', '.billboard-description', '.synopsis'],
     billboardImage: ['.hero-image-wrapper img', 'img.hero', '.static-image', '[data-uia="billboard-image"] img'],
+    /** Netflix's own mute button on trailer previews (billboard, details); it remembers the choice. */
+    previewAudioToggle: [
+        '[data-uia="audio-toggle-muted"]',
+        '[data-uia="audio-toggle-unmuted"]',
+        '[data-uia*="audio-toggle"]',
+        '.global-supplemental-audio-toggle',
+    ],
     /** Links that carry the billboard's title id (play link, "more info"). */
     billboardLinks: 'a[href*="/watch/"], a[href*="/title/"], a[href*="jbv="], [data-videoid]',
     profileLink: ['[data-uia="profile-link"]', '.profile-link'],

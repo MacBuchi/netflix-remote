@@ -1,6 +1,8 @@
 // Ratings from IMDb, Rotten Tomatoes and Metacritic via OMDb (www.omdbapi.com). Each user enters an own
-// free OMDb key; without one nothing is requested. Titles are matched by name (Netflix ids are unknown
-// to OMDb), results are cached on the phone to stay within the daily limit of free keys.
+// free OMDb key; without one nothing is requested. OMDb does not know Netflix ids, and Netflix shows
+// localized titles OMDb often cannot find, so the Netflix id is first mapped to the IMDb id through
+// Wikidata (Netflix ID P1874 → IMDb ID P345); only unknown ids fall back to a search by title.
+// Results are cached on the phone to stay within the daily limit of free keys.
 
 import { useEffect, useState } from 'preact/hooks';
 
@@ -19,7 +21,8 @@ export type RatingsError = 'key' | 'limit' | 'network';
 
 const OMDB = 'https://www.omdbapi.com/';
 const KEY_STORAGE = 'nfr.omdbKey';
-const CACHE_STORAGE = 'nfr.ratings';
+const WIKIDATA = 'https://query.wikidata.org/sparql';
+const CACHE_STORAGE = 'nfr.ratings2';
 const HIT_TTL = 7 * 24 * 3600_000;
 const MISS_TTL = 24 * 3600_000;
 const MAX_CACHE = 400;
@@ -111,40 +114,81 @@ export async function testOmdbKey(key: string): Promise<{ title: string; ratings
     return { title: String(json.Title ?? 'Testtitel'), ratings };
 }
 
-const cacheKey = (title: string, kind?: Kind) => `${kind ?? '*'}:${title.toLowerCase()}`;
+/** IMDb id of a Netflix title from Wikidata; null if Wikidata does not know it or is unreachable. */
+export async function imdbIdForNetflix(netflixId: string): Promise<string | null> {
+    if (!/^\d{1,12}$/.test(netflixId)) return null;
+    const query = `SELECT ?imdb WHERE { ?item wdt:P1874 "${netflixId}"; wdt:P345 ?imdb. FILTER(STRSTARTS(?imdb, "tt")) } LIMIT 1`;
+    try {
+        const res = await fetch(`${WIKIDATA}?${new URLSearchParams({ format: 'json', query })}`, {
+            headers: { accept: 'application/sparql-results+json' },
+            referrerPolicy: 'no-referrer',
+        });
+        const json = await res.json();
+        const id = json?.results?.bindings?.[0]?.imdb?.value;
+        return typeof id === 'string' && /^tt\d+$/.test(id) ? id : null;
+    } catch {
+        return null;
+    }
+}
 
-export async function fetchRatings(title: string, kind?: Kind): Promise<Ratings | null> {
-    const key = omdbKey;
-    if (!key || !title) return null;
-    const cache = read<Record<string, CacheEntry>>(CACHE_STORAGE, {});
-    const id = cacheKey(title, kind);
-    const hit = cache[id];
-    if (hit && Date.now() - hit.at < (hit.r ? HIT_TTL : MISS_TTL)) return hit.r;
-
-    const r = await omdb({ t: title, ...(kind ? { type: kind } : {}) }, key);
+function remember(cache: Record<string, CacheEntry>, id: string, r: Ratings | null) {
     cache[id] = { at: Date.now(), r };
     const entries = Object.entries(cache);
     if (entries.length > MAX_CACHE) entries.sort((a, b) => a[1].at - b[1].at).slice(0, entries.length - MAX_CACHE).forEach(([k]) => delete cache[k]);
     write(CACHE_STORAGE, cache);
+}
+
+/** Ratings for a title: by Netflix id via Wikidata when possible, else by name. */
+export async function fetchRatings(title: string, kind?: Kind, netflixId?: string | null): Promise<Ratings | null> {
+    const key = omdbKey;
+    if (!key || (!title && !netflixId)) return null;
+    const cache = read<Record<string, CacheEntry>>(CACHE_STORAGE, {});
+    const id = netflixId ? `nf:${netflixId}` : `${kind ?? '*'}:${title.toLowerCase()}`;
+    const hit = cache[id];
+    if (hit && Date.now() - hit.at < (hit.r ? HIT_TTL : MISS_TTL)) return hit.r;
+
+    const imdbId = netflixId ? await imdbIdForNetflix(netflixId) : null;
+    let r = imdbId ? await omdb({ i: imdbId }, key) : null;
+    if (!r && title) r = await omdb({ t: title, ...(kind ? { type: kind } : {}) }, key);
+    remember(cache, id, r);
     return r;
 }
 
-export function useRatings(title: string | null | undefined, kind?: Kind) {
+export function useRatings(title: string | null | undefined, kind?: Kind, netflixId?: string | null) {
     const key = useOmdbKey();
-    const [state, setState] = useState<{ ratings: Ratings | null; error: RatingsError | null }>({ ratings: null, error: null });
+    const [state, setState] = useState<{ ratings: Ratings | null; error: RatingsError | null; done: boolean }>({
+        ratings: null,
+        error: null,
+        done: false,
+    });
     useEffect(() => {
-        setState({ ratings: null, error: null });
-        if (!key || !title) return;
+        setState({ ratings: null, error: null, done: false });
+        if (!key || (!title && !netflixId)) return;
         let live = true;
-        fetchRatings(title, kind).then(
-            (ratings) => live && setState({ ratings, error: null }),
-            (error: RatingsError) => live && setState({ ratings: null, error }),
+        fetchRatings(title ?? '', kind, netflixId).then(
+            (ratings) => live && setState({ ratings, error: null, done: true }),
+            (error: RatingsError) => live && setState({ ratings: null, error, done: true }),
         );
         return () => {
             live = false;
         };
-    }, [key, title, kind]);
+    }, [key, title, kind, netflixId]);
     return { ...state, enabled: !!key };
+}
+
+/**
+ * The OMDb key from whatever was pasted: the bare key, the example link from OMDb's e-mail
+ * (…?i=tt3896198&apikey=abcd1234) or the whole e-mail text. The activation link (…?VERIFYKEY=…)
+ * is not the key; `activation` tells the user to open it instead.
+ */
+export function extractOmdbKey(input: string): { key: string; fromUrl: boolean; activation: boolean } {
+    const text = input.trim();
+    const fromParam = text.match(/[?&]apikey=([^&#\s]+)/i)?.[1];
+    if (fromParam) return { key: fromParam, fromUrl: true, activation: false };
+    if (/VERIFYKEY=/i.test(text)) return { key: '', fromUrl: false, activation: true };
+    // "Here is your key: abcd1234" – take the key-shaped word.
+    const word = /\s/.test(text) ? text.split(/\s+/).reverse().find((w) => /^[A-Za-z0-9]{8}$/.test(w)) : undefined;
+    return { key: word ?? text, fromUrl: false, activation: false };
 }
 
 /** Asks the app to show the settings sheet (the ratings setup lives there). */

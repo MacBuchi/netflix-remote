@@ -192,6 +192,21 @@ describe('PlayerAdapter', () => {
         expect(a.getState()).toBeNull();
     });
 
+    it('sets the playback speed and restores it when Netflix resets the video', () => {
+        document.body.innerHTML = '<video></video>';
+        const video = document.querySelector('video')!;
+        const p = fakePlayer({ setPlaybackRate: vi.fn() });
+        installNetflix(p);
+        const a = new PlayerAdapter(window);
+        expect(a.run({ type: 'player.setRate', rate: 1.5 }).ok).toBe(true);
+        expect(p.setPlaybackRate).toHaveBeenCalledWith(1.5);
+        expect(video.playbackRate).toBe(1.5);
+        video.playbackRate = 1; // e.g. after buffering
+        expect(a.getState()?.playbackRate).toBe(1.5);
+        a.run({ type: 'player.setRate', rate: 1 });
+        expect(a.getState()?.playbackRate).toBe(1);
+    });
+
     it('falls back to the <video> element without the API', () => {
         document.body.innerHTML = '<video></video>';
         const video = document.querySelector('video')!;

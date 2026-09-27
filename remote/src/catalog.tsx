@@ -123,13 +123,15 @@ export function CatalogView({ state, send, query }: { state: RemoteState; send: 
             </nav>
 
             {state.page === 'title' && catalog?.detail ? (
-                <DetailView detail={catalog.detail} act={act} />
+                <DetailView detail={catalog.detail} muted={catalog.previewMuted} act={act} />
             ) : (
                 <>
                     {state.page === 'search' && <h2 class="catalog-heading">Suchergebnisse</h2>}
                     {state.page === 'browse' && catalog?.billboard && (
                         <Hero
                             billboard={catalog.billboard}
+                            muted={catalog.previewMuted}
+                            onSound={(muted) => act({ type: 'catalog.previewSound', muted }, true)}
                             onPlay={(id) => act({ type: 'catalog.play', id })}
                             onDetails={(id) => act({ type: 'catalog.open', id })}
                         />
@@ -197,8 +199,29 @@ function SearchBar({ onSearch }: { onSearch: (q: string) => void }) {
 }
 
 /** Netflix's large recommendation, full width like on the PC (where its trailer is playing). */
-function Hero({ billboard, onPlay, onDetails }: {
+/** Mutes or unmutes the trailer preview on the PC; hidden while no preview plays. */
+function SoundButton({ muted, onSound, overlay = false }: {
+    muted: boolean | null | undefined;
+    onSound: (muted: boolean) => void;
+    overlay?: boolean;
+}) {
+    if (muted == null) return null;
+    return (
+        <button
+            class={overlay ? 'sound-btn overlay' : 'sound-btn'}
+            aria-label={muted ? 'Vorschau-Ton einschalten' : 'Vorschau-Ton ausschalten'}
+            aria-pressed={muted}
+            onClick={() => onSound(!muted)}
+        >
+            <Icon name={muted ? 'volOff' : 'volUp'} size={22} />
+        </button>
+    );
+}
+
+function Hero({ billboard, muted, onSound, onPlay, onDetails }: {
     billboard: Billboard;
+    muted: boolean | null | undefined;
+    onSound: (muted: boolean) => void;
     onPlay: (id: string) => void;
     onDetails: (id: string) => void;
 }) {
@@ -207,6 +230,7 @@ function Hero({ billboard, onPlay, onDetails }: {
             <div class="hero-media">
                 {billboard.img && <img class="hero-img" src={billboard.img} alt="" referrerpolicy="no-referrer" />}
                 <div class="hero-shade" />
+                <SoundButton muted={muted} onSound={onSound} overlay />
                 <div class="hero-title">
                     {billboard.logo ? (
                         <img class="hero-logo" src={billboard.logo} alt={billboard.title} referrerpolicy="no-referrer" />
@@ -216,7 +240,7 @@ function Hero({ billboard, onPlay, onDetails }: {
                 </div>
             </div>
             <div class="hero-ratings">
-                <RatingsRow title={billboard.title} />
+                <RatingsRow title={billboard.title} id={billboard.id} />
             </div>
             {billboard.synopsis && <p class="hero-synopsis muted">{billboard.synopsis}</p>}
             <div class="row hero-actions">
@@ -263,7 +287,7 @@ function ItemSheet({ item, onClose, onPlay, onDetails }: {
             <div class="sheet" role="dialog" aria-label={item.name} onClick={(e) => e.stopPropagation()}>
                 {item.img && <img class="sheet-img" src={item.img} alt="" referrerpolicy="no-referrer" />}
                 <h2>{item.name}</h2>
-                <RatingsRow title={item.name} />
+                <RatingsRow title={item.name} id={item.id} showMissing />
                 <div class="row">
                     <button class="btn primary" onClick={onPlay}>
                         <Icon name="play" size={20} /> Abspielen
@@ -280,12 +304,22 @@ function ItemSheet({ item, onClose, onPlay, onDetails }: {
     );
 }
 
-function DetailView({ detail, act }: { detail: TitleDetail; act: (cmd: CatalogCommand, refresh?: boolean) => void }) {
+function DetailView({ detail, muted, act }: {
+    detail: TitleDetail;
+    muted: boolean | null | undefined;
+    act: (cmd: CatalogCommand, refresh?: boolean) => void;
+}) {
     return (
         <div class="detail">
             {detail.img && <img class="detail-img" src={detail.img} alt="" referrerpolicy="no-referrer" />}
             <h2>{detail.title || 'Titel'}</h2>
-            <RatingsRow title={detail.title} kind={detail.seasons.length || detail.episodes.length > 1 ? 'series' : undefined} hint />
+            <RatingsRow
+                title={detail.title}
+                id={detail.id}
+                kind={detail.seasons.length || detail.episodes.length > 1 ? 'series' : undefined}
+                hint
+                showMissing
+            />
             {detail.synopsis && <p class="muted">{detail.synopsis}</p>}
             <div class="row">
                 {detail.id && (
@@ -296,6 +330,7 @@ function DetailView({ detail, act }: { detail: TitleDetail; act: (cmd: CatalogCo
                 <button class="btn" onClick={() => act({ type: 'catalog.back' })}>
                     <Icon name="back" size={20} /> Zurück
                 </button>
+                <SoundButton muted={muted} onSound={(m) => act({ type: 'catalog.previewSound', muted: m }, true)} />
             </div>
 
             {detail.seasons.length > 1 && (

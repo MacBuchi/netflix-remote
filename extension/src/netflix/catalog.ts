@@ -178,6 +178,32 @@ function readDetail(doc: Document): TitleDetail | null {
     };
 }
 
+/** Trailer previews: every <video> outside the player (only the player page has one of its own). */
+function previewVideos(doc: Document): HTMLVideoElement[] {
+    if (location.pathname.startsWith('/watch/')) return [];
+    return Array.from(doc.querySelectorAll('video'));
+}
+
+function previewMuted(doc: Document): boolean | null {
+    const videos = previewVideos(doc);
+    if (videos.length) return videos.every((v) => v.muted || v.volume === 0);
+    const toggle = q(doc, SEL.previewAudioToggle);
+    if (!toggle) return null;
+    return /(^|-)muted$/.test(toggle.getAttribute('data-uia') ?? '');
+}
+
+async function setPreviewSound(doc: Document, muted: boolean): Promise<CommandResult> {
+    if (previewMuted(doc) === muted) return { ok: true };
+    // Prefer Netflix's own button: Netflix then keeps the choice for later previews.
+    const toggle = q(doc, SEL.previewAudioToggle);
+    if (toggle) {
+        toggle.click();
+        await sleep(300);
+    }
+    if (previewMuted(doc) !== muted) for (const v of previewVideos(doc)) v.muted = muted;
+    return previewMuted(doc) === null ? { ok: false, error: 'Gerade läuft keine Vorschau' } : { ok: true };
+}
+
 export function readCatalog(doc: Document, offset = 0, limit = 8): Catalog {
     const page = detectPageKind(location, doc);
     const rows = page === 'profiles' ? [] : readRows(doc).filter((r) => r.items.length);
@@ -188,6 +214,7 @@ export function readCatalog(doc: Document, offset = 0, limit = 8): Catalog {
         profiles: page === 'profiles' ? readProfiles(doc) : [],
         detail: page === 'title' ? readDetail(doc) : null,
         billboard: page === 'browse' ? readBillboard(doc) : null,
+        previewMuted: page === 'browse' || page === 'title' ? previewMuted(doc) : null,
     };
 }
 
@@ -253,6 +280,8 @@ export function diagnose(doc: Document): Record<string, unknown> {
             billboard: count(SEL.billboard),
             billboardLogo: count(SEL.billboardLogo),
             billboardImage: count(SEL.billboardImage),
+            previewAudioToggle: count(SEL.previewAudioToggle),
+            video: count('video'),
             episode: count(SEL.episode),
         },
         sampleLinks: links.slice(0, 5).map((a) => ({
@@ -261,6 +290,12 @@ export function diagnose(doc: Document): Record<string, unknown> {
             img: !!a.closest('div')?.querySelector('img'),
             path: describe(a),
         })),
+        previewMuted: catalog.previewMuted,
+        /** Buttons around previews, to find Netflix's mute button when its markup changes. */
+        previewButtons: [q(doc, SEL.billboard), detailRoot(doc)]
+            .flatMap((root) => (root ? Array.from(root.querySelectorAll('button')) : []))
+            .slice(0, 12)
+            .map((b) => `${b.getAttribute('data-uia') ?? '-'} | ${b.getAttribute('aria-label') ?? text(b).slice(0, 30)}`),
         sampleHeadings: Array.from(doc.querySelectorAll('h2, h3'))
             .slice(0, 5)
             .map((h) => `${text(h).slice(0, 40)} ← ${describe(h, 4)}`),
@@ -305,6 +340,8 @@ export async function runCatalogCommand(doc: Document, cmd: CatalogCommand): Pro
         case 'catalog.search':
             go(`/search?q=${encodeURIComponent(cmd.q)}`);
             return { ok: true };
+        case 'catalog.previewSound':
+            return setPreviewSound(doc, cmd.muted);
         case 'catalog.nav':
             go(SECTION_URLS[cmd.section]);
             return { ok: true };
