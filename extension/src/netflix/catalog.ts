@@ -10,25 +10,17 @@ import type {
     CatalogCommand,
     CatalogItem,
     CatalogRow,
-    CatalogSection,
     CommandResult,
     Episode,
     Profile,
     TitleDetail,
 } from '../../../shared/protocol';
+import { SECTION_URLS } from '../../../shared/protocol';
 import { detectPageKind } from './page-kind';
 import { SEL } from './selectors';
 
 const MAX_ITEMS_PER_ROW = 30;
 const GENERIC_LINK_TEXT = /^(play|abspielen|wiedergabe|more info|weitere infos|mehr infos|resume|fortsetzen)$/i;
-
-export const SECTION_URLS: Record<CatalogSection, string> = {
-    home: '/browse',
-    series: '/browse/genre/83',
-    movies: '/browse/genre/34399',
-    new: '/latest',
-    mylist: '/browse/my-list',
-};
 
 type Sel = string | readonly string[];
 

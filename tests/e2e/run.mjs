@@ -240,6 +240,10 @@ try {
         await phone.getByRole('button', { name: 'Serien', exact: true }).click({ timeout: 15_000 });
         await netflix.waitForURL(/\/browse\/genre\/83/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('heading', { name: 'Serien-Tipps' }).waitFor({ timeout: 15_000 });
+        // The chip of the section Netflix shows is highlighted, and only that one.
+        await phone.locator('.chip[aria-current="page"]', { hasText: 'Serien' }).waitFor({ timeout: 10_000 });
+        assert.equal(await phone.locator('.chip[aria-current="page"]').count(), 1);
+        if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-sections.png') });
     });
 
     await step('closing Netflix shows "open Netflix", which reopens it', async () => {

@@ -25,6 +25,22 @@ export type AppCommand =
 
 export type CatalogSection = 'home' | 'series' | 'movies' | 'new' | 'mylist';
 
+/** Netflix paths of the sections; the extension navigates there, the phone marks the current one. */
+export const SECTION_URLS: Record<CatalogSection, string> = {
+    home: '/browse',
+    series: '/browse/genre/83',
+    movies: '/browse/genre/34399',
+    new: '/latest',
+    mylist: '/browse/my-list',
+};
+
+/** The section a Netflix location (path + query) belongs to, or null (search, player …). */
+export function sectionOf(location: string): CatalogSection | null {
+    const path = location.split(/[?#]/)[0].replace(/\/+$/, '');
+    const found = Object.entries(SECTION_URLS).find(([, url]) => url === path);
+    return found ? (found[0] as CatalogSection) : null;
+}
+
 /** Film browser: read what Netflix shows on the PC and act on it. */
 export type CatalogCommand =
     | { type: 'catalog.get'; offset: number; limit: number }

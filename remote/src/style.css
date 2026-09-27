@@ -130,6 +130,7 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 32px; }
 .chips::-webkit-scrollbar { display: none; }
 .chip { flex: none; min-height: 36px; padding: 0 14px; border: 1px solid var(--surface-2); border-radius: 999px; background: transparent; color: var(--fg); font: inherit; font-size: 14px; }
 .chip:active { background: var(--surface-2); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 
 .cat-row { margin-right: 0; }
 .cat-row h3 { margin: 0 0 8px; font-size: 16px; }

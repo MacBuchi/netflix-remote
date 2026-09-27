@@ -12,6 +12,7 @@ import type {
     RemoteState,
     TitleDetail,
 } from '../../shared/protocol';
+import { sectionOf } from '../../shared/protocol';
 import { Icon } from './icons';
 
 type Send = (cmd: Command) => void;
@@ -78,6 +79,8 @@ export function CatalogView({ state, send, query }: { state: RemoteState; send: 
     const { catalog, loading, error, reload, more } = useCatalog(state, query);
     const empty = <Empty loading={loading} error={error} onReload={reload} query={query} />;
     const [selected, setSelected] = useState<CatalogItem | null>(null);
+    // Follows the PC, so the mark is right even when someone navigates there directly.
+    const current = sectionOf(state.location);
 
     // Actions that change the page without changing the URL (seasons) need a manual refresh.
     const act = (cmd: CatalogCommand, refresh = false) => {
@@ -107,7 +110,11 @@ export function CatalogView({ state, send, query }: { state: RemoteState; send: 
             <SearchBar onSearch={(q) => act({ type: 'catalog.search', q })} />
             <nav class="chips">
                 {SECTIONS.map((s) => (
-                    <button class="chip" onClick={() => act({ type: 'catalog.nav', section: s.id })}>
+                    <button
+                        class={s.id === current ? 'chip active' : 'chip'}
+                        aria-current={s.id === current ? 'page' : undefined}
+                        onClick={() => act({ type: 'catalog.nav', section: s.id })}
+                    >
                         {s.label}
                     </button>
                 ))}
