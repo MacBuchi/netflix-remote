@@ -69,9 +69,11 @@ aedes.on('publish', (packet) => {
 });
 
 const webrtcArgs = ['--disable-features=WebRtcHideLocalIpsWithMdns'];
+// E2E_BROWSER=<path> runs the PC side in another Chromium browser (e.g. Opera) to check compatibility.
+const BROWSER = process.env.E2E_BROWSER;
 const pc = await chromium.launchPersistentContext('', {
-    channel: 'chromium',
-    headless: true,
+    ...(BROWSER ? { executablePath: BROWSER } : { channel: 'chromium' }),
+    headless: !BROWSER,
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, ...webrtcArgs],
 });
 const phoneBrowser = await chromium.launch({ args: webrtcArgs });
