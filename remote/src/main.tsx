@@ -14,6 +14,7 @@ import { CatalogView } from './catalog';
 import { RemoteClient, deviceName, type ClientSnapshot } from './client';
 import { Icon, type IconName } from './icons';
 import { activePeerId, consumePairingFromUrl, loadPairings, removePairing, setActive } from './pairings';
+import { setOmdbKey, testOmdbKey, useOmdbKey, type RatingsError } from './ratings';
 import './style.css';
 
 type Send = (cmd: Command) => void;
@@ -60,7 +61,14 @@ function App() {
     const pairing = pairings.find((p) => p.peerId === activeId) ?? pairings[0];
     const [snap, setSnap] = useState<ClientSnapshot | null>(null);
     const [toast, setToast] = useState<string | null>(null);
+    const [settings, setSettings] = useState(false);
     const client = useRef<RemoteClient | null>(null);
+
+    useEffect(() => {
+        const open = () => setSettings(true);
+        window.addEventListener('nfr:settings', open);
+        return () => window.removeEventListener('nfr:settings', open);
+    }, []);
 
     useEffect(() => {
         if (!pairing) return;
@@ -126,7 +134,7 @@ function App() {
 
     return (
         <div class="app">
-            <Header pairings={pairings} active={pairing} snap={snap} onSwitch={switchPc} />
+            <Header pairings={pairings} active={pairing} snap={snap} onSwitch={switchPc} onSettings={() => setSettings(true)} />
             <main>
                 {snap?.status === 'connected' ? (
                     <Connected state={snap.state} send={send} query={query} />
@@ -135,15 +143,17 @@ function App() {
                 )}
             </main>
             {toast && <div class="toast">{toast}</div>}
+            {settings && <Settings onClose={() => setSettings(false)} />}
         </div>
     );
 }
 
-function Header({ pairings, active, snap, onSwitch }: {
+function Header({ pairings, active, snap, onSwitch, onSettings }: {
     pairings: Pairing[];
     active: Pairing;
     snap: ClientSnapshot | null;
     onSwitch: (id: string) => void;
+    onSettings: () => void;
 }) {
     const status = snap?.status ?? 'connecting';
     return (
@@ -163,7 +173,97 @@ function Header({ pairings, active, snap, onSwitch }: {
                     {snap.via === 'direct' ? 'Direkt' : 'Relay'}
                 </span>
             )}
+            <button class="header-btn" aria-label="Einstellungen" onClick={onSettings}>
+                <Icon name="settings" size={22} />
+            </button>
         </header>
+    );
+}
+
+const KEY_ERRORS: Record<RatingsError, string> = {
+    key: 'Dieser Schlüssel wird von OMDb nicht angenommen. Ist er schon per E-Mail-Link aktiviert?',
+    limit: 'Das Tageslimit dieses Schlüssels ist erreicht.',
+    network: 'OMDb ist gerade nicht erreichbar.',
+};
+
+/** Ratings setup: each user brings an own free OMDb key; nothing is requested without one. */
+function Settings({ onClose }: { onClose: () => void }) {
+    const saved = useOmdbKey();
+    const [key, setKey] = useState(saved ?? '');
+    const [busy, setBusy] = useState(false);
+    const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+    const unchanged = !!saved && key.trim() === saved;
+
+    // Saving always runs the function test, so a working key is confirmed with a real answer.
+    const save = async (e: Event) => {
+        e.preventDefault();
+        setBusy(true);
+        setResult(null);
+        try {
+            const { title, ratings } = await testOmdbKey(key);
+            setOmdbKey(key);
+            const imdb = ratings.imdb ? ` – IMDb ${ratings.imdb.replace('.', ',')}` : '';
+            setResult({ ok: true, text: `Funktioniert: „${title}“${imdb}. Bewertungen erscheinen jetzt bei Titeln.` });
+        } catch (err) {
+            setResult({ ok: false, text: KEY_ERRORS[err as RatingsError] ?? String(err) });
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <div class="sheet-backdrop" onClick={onClose}>
+            <div class="sheet settings" role="dialog" aria-label="Einstellungen" onClick={(e) => e.stopPropagation()}>
+                <h2>Bewertungen</h2>
+                <p class="muted">
+                    Zeigt bei Titeln die Bewertungen von IMDb, Rotten Tomatoes und Metacritic. Sie kommen vom Dienst{' '}
+                    <a href="https://www.omdbapi.com/" target="_blank" rel="noopener noreferrer">OMDb</a>; dafür brauchst du
+                    einen eigenen, kostenlosen Schlüssel (1.000 Abfragen pro Tag).
+                </p>
+                <ol class="steps key-steps">
+                    <li>
+                        <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer">
+                            omdbapi.com/apikey.aspx
+                        </a>{' '}
+                        öffnen, „FREE! (1,000 daily limit)“ wählen, E-Mail-Adresse und Namen eintragen, absenden.
+                    </li>
+                    <li>In der E-Mail von OMDb den Aktivierungslink antippen – erst dann gilt der Schlüssel.</li>
+                    <li>Den Schlüssel aus der E-Mail (8 Zeichen) hier eintragen und „Speichern & testen“ tippen.</li>
+                </ol>
+                <form class="key-form" onSubmit={save}>
+                    <input
+                        aria-label="OMDb-Schlüssel"
+                        placeholder="OMDb-Schlüssel"
+                        value={key}
+                        autocomplete="off"
+                        autocapitalize="off"
+                        spellcheck={false}
+                        onInput={(e) => setKey((e.target as HTMLInputElement).value)}
+                    />
+                    <button class="btn primary" disabled={busy || !key.trim()}>
+                        {busy ? 'Teste …' : unchanged ? 'Erneut testen' : 'Speichern & testen'}
+                    </button>
+                </form>
+                {result && (
+                    <p class={result.ok ? 'ok-text' : 'error-text'} role="status">
+                        {result.ok ? '✓ ' : ''}
+                        {result.text}
+                    </p>
+                )}
+                {saved && (
+                    <button class="link" onClick={() => (setOmdbKey(null), setKey(''), setResult(null))}>
+                        Schlüssel entfernen
+                    </button>
+                )}
+                <p class="muted legal">
+                    Mit Schlüssel fragt das Handy OMDb nach den Titelnamen, die du öffnest; Ergebnisse bleiben eine Woche
+                    auf dem Handy gespeichert. <a href={`${import.meta.env.BASE_URL}privacy.html`}>Datenschutz</a>
+                </p>
+                <button class="sheet-close" aria-label="Schließen" onClick={onClose}>
+                    <Icon name="close" />
+                </button>
+            </div>
+        </div>
     );
 }
 

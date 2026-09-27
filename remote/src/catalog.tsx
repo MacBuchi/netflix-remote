@@ -15,6 +15,7 @@ import type {
 } from '../../shared/protocol';
 import { sectionOf } from '../../shared/protocol';
 import { Icon } from './icons';
+import { RatingsRow } from './ratings-view';
 
 type Send = (cmd: Command) => void;
 type Query = (cmd: CatalogCommand) => Promise<CommandResult>;
@@ -214,6 +215,9 @@ function Hero({ billboard, onPlay, onDetails }: {
                     )}
                 </div>
             </div>
+            <div class="hero-ratings">
+                <RatingsRow title={billboard.title} />
+            </div>
             {billboard.synopsis && <p class="hero-synopsis muted">{billboard.synopsis}</p>}
             <div class="row hero-actions">
                 <button class="btn primary" onClick={() => onPlay(billboard.id)}>
@@ -259,6 +263,7 @@ function ItemSheet({ item, onClose, onPlay, onDetails }: {
             <div class="sheet" role="dialog" aria-label={item.name} onClick={(e) => e.stopPropagation()}>
                 {item.img && <img class="sheet-img" src={item.img} alt="" referrerpolicy="no-referrer" />}
                 <h2>{item.name}</h2>
+                <RatingsRow title={item.name} />
                 <div class="row">
                     <button class="btn primary" onClick={onPlay}>
                         <Icon name="play" size={20} /> Abspielen
@@ -280,6 +285,7 @@ function DetailView({ detail, act }: { detail: TitleDetail; act: (cmd: CatalogCo
         <div class="detail">
             {detail.img && <img class="detail-img" src={detail.img} alt="" referrerpolicy="no-referrer" />}
             <h2>{detail.title || 'Titel'}</h2>
+            <RatingsRow title={detail.title} kind={detail.seasons.length || detail.episodes.length > 1 ? 'series' : undefined} hint />
             {detail.synopsis && <p class="muted">{detail.synopsis}</p>}
             <div class="row">
                 {detail.id && (
