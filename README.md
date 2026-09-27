@@ -18,6 +18,7 @@ kein eigener Server.
 
 **Film-Browser auf dem Handy**
 - Profilauswahl („Wer schaut gerade?“)
+- Die große Netflix-Empfehlung oben auf Start, Serien, Filme … über die ganze Breite, direkt abspielbar (am PC läuft ihr Trailer)
 - Reihen wie „Weiterschauen“ oder „Derzeit beliebt“ mit Bildern und Fortschritt, weitere Reihen nachladen
 - Bereiche Start, Serien, Filme, Neu und Meine Liste – der aktive Bereich ist rot markiert, auch wenn am PC navigiert wird
 - Suche über die Handy-Tastatur

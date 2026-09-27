@@ -22,15 +22,24 @@ const SHOTS = process.env.E2E_SCREENSHOTS;
 
 const fakeNetflix = await readFile(join(import.meta.dirname, 'fake-netflix.html'), 'utf8');
 
-/** A colored poster named after the image URL's `t` parameter (the fake page puts the title there). */
+/** Placeholder image for the fake page's CDN URLs: a colored poster titled after `t`, a text-free
+ *  billboard background (`hero`) or a title logo (`logo`). */
 function posterSvg(url) {
-    const title = new URL(url).searchParams.get('t') ?? '';
-    const hue = [...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 200);
+    const params = new URL(url).searchParams;
+    const title = params.get('t') ?? '';
     const esc = title.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`);
+    if (params.has('logo')) {
+        const width = title.length * 48;
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="90" viewBox="0 0 ${width} 90">
+            <text x="0" y="68" textLength="${width - 8}" fill="#fff" font-family="Georgia, serif" font-size="64" font-weight="700">${esc.toUpperCase()}</text></svg>`;
+    }
+    const hue = [...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 200);
+    const label = params.has('hero')
+        ? `<circle cx="230" cy="70" r="90" fill="hsl(${(hue + 30) % 360},80%,60%)" opacity="0.35"/>`
+        : `<text x="160" y="100" fill="#fff" font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle">${esc}</text>`;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
         <defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},55%,42%)"/><stop offset="1" stop-color="hsl(${(hue + 50) % 360},60%,14%)"/></linearGradient></defs>
-        <rect width="320" height="180" fill="url(#g)"/>
-        <text x="160" y="100" fill="#fff" font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle">${esc}</text></svg>`;
+        <rect width="320" height="180" fill="url(#g)"/>${label}</svg>`;
 }
 // Never fetch the Netflix CDN (CI has internet, real requests would stall page loads); for screenshots draw placeholders.
 const cdn = (route) =>
@@ -228,6 +237,17 @@ try {
         await hotel.getByRole('button', { name: 'Titel 3-29' }).waitFor();
         assert.ok(largestRelayMessage > 0 && largestRelayMessage < 32_000, `largest relay message ${largestRelayMessage} bytes`);
         await hotel.close();
+    });
+
+    await step('catalog: the billboard is shown on top and "Abspielen" starts it on the PC', async () => {
+        const hero = phone.getByRole('region', { name: 'Empfehlung: The Crown' });
+        await hero.waitFor({ timeout: 15_000 });
+        await hero.getByText('Die Regentschaft von Königin Elisabeth II.', { exact: false }).waitFor();
+        await hero.getByRole('button', { name: 'Abspielen' }).click();
+        await netflix.waitForURL(/\/watch\/80025678/, { timeout: 10_000, waitUntil: 'commit' });
+        await phone.getByRole('button', { name: 'Pause' }).waitFor({ timeout: 10_000 });
+        await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click();
+        await phone.getByRole('button', { name: 'Stranger Things' }).waitFor({ timeout: 15_000 });
     });
 
     await step('catalog: tapping a title and "Abspielen" starts it on the PC', async () => {

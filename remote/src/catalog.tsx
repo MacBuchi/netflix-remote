@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type {
+    Billboard,
     Catalog,
     CatalogCommand,
     CatalogItem,
@@ -125,6 +126,13 @@ export function CatalogView({ state, send, query }: { state: RemoteState; send: 
             ) : (
                 <>
                     {state.page === 'search' && <h2 class="catalog-heading">Suchergebnisse</h2>}
+                    {state.page === 'browse' && catalog?.billboard && (
+                        <Hero
+                            billboard={catalog.billboard}
+                            onPlay={(id) => act({ type: 'catalog.play', id })}
+                            onDetails={(id) => act({ type: 'catalog.open', id })}
+                        />
+                    )}
                     {catalog?.rows.map((row) => (
                         <section class="cat-row">
                             {row.title && <h3>{row.title}</h3>}
@@ -184,6 +192,38 @@ function SearchBar({ onSearch }: { onSearch: (q: string) => void }) {
                 onInput={(e) => setQ((e.target as HTMLInputElement).value)}
             />
         </form>
+    );
+}
+
+/** Netflix's large recommendation, full width like on the PC (where its trailer is playing). */
+function Hero({ billboard, onPlay, onDetails }: {
+    billboard: Billboard;
+    onPlay: (id: string) => void;
+    onDetails: (id: string) => void;
+}) {
+    return (
+        <section class="hero" aria-label={`Empfehlung: ${billboard.title}`}>
+            <div class="hero-media">
+                {billboard.img && <img class="hero-img" src={billboard.img} alt="" referrerpolicy="no-referrer" />}
+                <div class="hero-shade" />
+                <div class="hero-title">
+                    {billboard.logo ? (
+                        <img class="hero-logo" src={billboard.logo} alt={billboard.title} referrerpolicy="no-referrer" />
+                    ) : (
+                        <h2>{billboard.title}</h2>
+                    )}
+                </div>
+            </div>
+            {billboard.synopsis && <p class="hero-synopsis muted">{billboard.synopsis}</p>}
+            <div class="row hero-actions">
+                <button class="btn primary" onClick={() => onPlay(billboard.id)}>
+                    <Icon name="play" size={20} /> Abspielen
+                </button>
+                <button class="btn" onClick={() => onDetails(billboard.id)}>
+                    <Icon name="info" size={20} /> Weitere Infos
+                </button>
+            </div>
+        </section>
     );
 }
 

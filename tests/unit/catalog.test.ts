@@ -86,6 +86,33 @@ describe('readCatalog', () => {
         expect(c.rows[0].items.map((i) => i.name)).toEqual(['A', 'B']);
     });
 
+    it('reads the billboard with logo, synopsis and background image', () => {
+        document.body.innerHTML =
+            `<div class="billboard-row"><div class="billboard billboard-pane">
+                <div class="hero-image-wrapper"><img class="hero static-image" src="https://occ-0.nflxso.net/hero.jpg"></div>
+                <div class="billboard-title"><img class="title-logo" alt="The Crown" src="https://occ-0.nflxso.net/logo.png"></div>
+                <div class="billboard-description"><div class="synopsis">Königin Elisabeth II.</div></div>
+                <div class="billboard-links"><a class="playLink" href="/watch/80025678?trackId=1"><button data-uia="play-button">Abspielen</button></a>
+                <button data-uia="billboard-more-info">Weitere Infos</button></div>
+            </div></div>` + BROWSE.replace(/<div class="billboard-row">.*?<\/div>/, '');
+        const c = readCatalog(document);
+        expect(c.billboard).toEqual({
+            id: '80025678',
+            title: 'The Crown',
+            synopsis: 'Königin Elisabeth II.',
+            img: 'https://occ-0.nflxso.net/hero.jpg',
+            logo: 'https://occ-0.nflxso.net/logo.png',
+        });
+        expect(c.rows.flatMap((r) => r.items.map((i) => i.id))).not.toContain('80025678');
+    });
+
+    it('ignores a billboard without title or image, and has none outside browse pages', () => {
+        document.body.innerHTML = BROWSE;
+        expect(readCatalog(document).billboard).toBeNull();
+        history.replaceState(null, '', '/search?q=x');
+        expect(readCatalog(document).billboard).toBeNull();
+    });
+
     it('reads profiles on the profile gate', () => {
         document.body.innerHTML = `
             <ul class="choose-profile">

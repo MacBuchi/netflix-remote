@@ -31,8 +31,13 @@ export const SEL = {
     rowTitle: ['.row-header-title', '[data-uia="row-title"]', 'h2', 'h3'],
     cardName: ['.fallback-text', '[data-uia="title-card-name"]'],
     progress: ['[class*="progress-completed"]', 'progress'],
-    /** Hero banner on top of browse pages. */
+    /** Hero banner on top of browse pages ("billboard", its trailer plays automatically). */
     billboard: ['.billboard-row', '[data-uia="billboard"]', '.billboard'],
+    billboardLogo: ['[data-uia="billboard-title"] img', '.billboard-title img', 'img.title-logo'],
+    billboardSynopsis: ['[data-uia="billboard-synopsis"]', '.billboard-description .synopsis', '.billboard-description', '.synopsis'],
+    billboardImage: ['.hero-image-wrapper img', 'img.hero', '.static-image', '[data-uia="billboard-image"] img'],
+    /** Links that carry the billboard's title id (play link, "more info"). */
+    billboardLinks: 'a[href*="/watch/"], a[href*="/title/"], a[href*="jbv="], [data-videoid]',
     profileLink: ['[data-uia="profile-link"]', '.profile-link'],
     profileName: ['.profile-name', '[data-uia="profile-name"]'],
     profileImage: ['.profile-icon', '[data-uia="profile-icon"]', 'img'],
