@@ -6,6 +6,7 @@ import {
     parseCommand,
     parsePairingHash,
     parsePhoneMsg,
+    sectionOf,
 } from '../../shared/protocol';
 
 describe('parseCommand', () => {
@@ -97,5 +98,23 @@ describe('formatTime', () => {
         expect(formatTime(65_000)).toBe('1:05');
         expect(formatTime(3_725_000)).toBe('1:02:05');
         expect(formatTime(-5)).toBe('0:00');
+    });
+});
+
+describe('sectionOf', () => {
+    it('maps Netflix locations to the section chips', () => {
+        expect(sectionOf('/browse')).toBe('home');
+        expect(sectionOf('/browse?jbv=80057281')).toBe('home');
+        expect(sectionOf('/browse/genre/83?so=su')).toBe('series');
+        expect(sectionOf('/browse/genre/34399/')).toBe('movies');
+        expect(sectionOf('/latest')).toBe('new');
+        expect(sectionOf('/browse/my-list')).toBe('mylist');
+    });
+
+    it('marks nothing on other pages', () => {
+        expect(sectionOf('/search?q=Dark')).toBeNull();
+        expect(sectionOf('/watch/80057281')).toBeNull();
+        expect(sectionOf('/browse/genre/1365')).toBeNull();
+        expect(sectionOf('')).toBeNull();
     });
 });
