@@ -57,7 +57,8 @@ export function videoIdFromHref(href: string | null): string | null {
 
 function imageOf(root: Element | null): string | null {
     if (!root) return null;
-    const img = root.querySelector('img');
+    // The selector may hit the <img> itself (e.g. a plain avatar image on the profile gate).
+    const img = root instanceof HTMLImageElement ? root : root.querySelector('img');
     const src = img?.currentSrc || img?.getAttribute('src') || img?.getAttribute('data-src');
     if (src && !src.startsWith('data:')) return new URL(src, location.href).href;
     const bg = (root instanceof HTMLElement ? root : null)?.style.backgroundImage.match(/url\(["']?([^"')]+)/)?.[1];

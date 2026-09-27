@@ -100,6 +100,14 @@ describe('readCatalog', () => {
         ]);
     });
 
+    it('reads profile avatars that are plain images', () => {
+        document.body.innerHTML = `
+            <ul class="choose-profile">
+                <li><a class="profile-link" data-uia="profile-link" href="#"><img src="https://occ-0.nflxso.net/avatar2.png"><span class="profile-name">Alex</span></a></li>
+            </ul>`;
+        expect(readCatalog(document).profiles).toEqual([{ index: 0, name: 'Alex', img: 'https://occ-0.nflxso.net/avatar2.png' }]);
+    });
+
     it('reads the title details with episodes and keeps them out of the rows', () => {
         history.replaceState(null, '', '/browse?jbv=80100172');
         document.body.innerHTML = BROWSE + MODAL;

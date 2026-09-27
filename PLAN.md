@@ -5,9 +5,14 @@ steuert nicht nur den Player (Play/Pause, Spulen, Lautstärke, Untertitel …), 
 auch den **Katalog**: Zeilen durchblättern, Titel ansehen, suchen, Profil wählen und
 einen Film/eine Folge starten.
 
+> **Stand (Version 2.2.3):** Phasen 0–3 sind umgesetzt und mit echtem Netflix getestet (Kopplung,
+> Relay im Hotel-WLAN, Player, Film-Browser mit Bildern, Vorschau, Suche und Bereichen). Offen sind
+> nur noch optionale Punkte, siehe [Abschnitt 5](#5-umsetzung-in-phasen). Wo die Umsetzung vom
+> ursprünglichen Plan abweicht, ist es in den Abschnitten vermerkt.
+
 ---
 
-## 1. Ausgangslage: Was im Repo heute steckt
+## 1. Ausgangslage vor dem Neuaufbau
 
 Das Repo ist ein Fork von `butttons/netflix-remote` (Stand 2019):
 
@@ -107,6 +112,13 @@ optional für „komplett ohne Internet“; das Protokoll (Abschnitt 4) ist tran
 
 ## 3. Zielbild
 
+> **Umgesetzt** wurde es mit dem öffentlichen PeerJS-Vermittler statt eines Cloudflare Workers und mit
+> einem verschlüsselten MQTT-Relay als Fallback (siehe 2.2):
+>
+> ![Aufbau](docs/img/architecture.svg)
+>
+> Ursprünglicher Entwurf:
+
 ```
  Android (Chrome, PWA)                 Cloudflare Worker            PC/Mac (Chrome)
  ┌──────────────────────┐   Signaling  ┌──────────────┐  Signaling  ┌─────────────────────────────┐
@@ -130,6 +142,11 @@ optional für „komplett ohne Internet“; das Protokoll (Abschnitt 4) ist tran
    `roomId` beim Worker an; Nachrichten werden mit HMAC(`pairKey`) signiert, damit nur
    gekoppelte Geräte steuern können. Mehrere Rechner (PC *und* Mac) = mehrere gespeicherte
    Kopplungen, Auswahl in der App.
+
+*Umgesetzt:* Der QR-Code enthält Peer-ID, Schlüssel, Rechnername und die Serveradressen im `#`-Teil
+des Links (`buildPairingUrl`). Das Handy meldet sich mit `hello` und dem Schlüssel; ohne passenden
+Schlüssel verwirft die Extension alles. Über den Relay ist jede Nachricht mit einem aus dem Schlüssel
+abgeleiteten AES-GCM-Schlüssel verschlüsselt, auch die MQTT-Themen leiten sich daraus ab.
 
 ### 3.2 Player-Fernbedienung
 
@@ -195,23 +212,32 @@ Mausevents) – nur falls wirklich benötigt.
 
 ## 4. Nachrichtenprotokoll (transportunabhängig)
 
-JSON über den Datenkanal, versioniert:
+JSON über den Datenkanal (PeerJS mit `serialization: 'binary'`, weil `json` Nachrichten über
+~16 KB still verwirft) bzw. verschlüsselt und bei Bedarf in Teile zerlegt über den Relay.
+Maßgeblich sind die Typen in `shared/protocol.ts`; alles vom Handy läuft durch `parseCommand`
+(Whitelist, unbekannte Felder werden entfernt, Zahlen begrenzt).
 
 ```jsonc
 // Handy → PC
-{ "v":1, "id":"r42", "type":"player.seek",   "ms": 1234000 }
-{ "v":1, "id":"r43", "type":"browse.getRows", "from": 0, "count": 5 }
-{ "v":1, "id":"r44", "type":"browse.search",  "q": "dark" }
-{ "v":1, "id":"r45", "type":"title.play",     "videoId": "80100172" }
-{ "v":1, "id":"r46", "type":"nav.dpad",       "dir": "left" }
+{ "v":1, "type":"hello", "key":"…", "device":"Pixel 8", "phoneId":"…" }
+{ "v":1, "type":"request", "id":"r42", "cmd":{ "type":"player.seekBy", "ms": 10000 } }
+{ "v":1, "type":"request", "id":"r43", "cmd":{ "type":"catalog.get", "offset": 0, "limit": 6 } }
+{ "v":1, "type":"request", "id":"r44", "cmd":{ "type":"catalog.search", "q": "dark" } }
+{ "v":1, "type":"request", "id":"r45", "cmd":{ "type":"catalog.play", "id": "80100172" } }
+{ "v":1, "type":"ping" }   // Relay-Keepalive; "bye" beim Beenden
 
 // PC → Handy
-{ "v":1, "re":"r43", "ok":true, "rows":[{ "title":"Weiterschauen", "items":[{ "videoId":"…", "name":"…", "img":"https://…", "progress":0.4 }] }] }
-{ "v":1, "type":"state", "page":"watch", "player":{ "title":"…", "episode":"S1:E3", "pos":512000, "dur":2940000, "paused":false, "vol":0.8, "canSkipIntro":true } }
+{ "v":1, "type":"welcome", "pcName":"Mac" }
+{ "v":1, "type":"response", "re":"r43", "ok":true, "data":{ "page":"browse", "rows":[{ "title":"Weiterschauen", "items":[{ "id":"…", "name":"…", "img":"https://…", "progress":0.4 }] }], "totalRows": 12, "profiles":[], "detail":null } }
+{ "v":1, "type":"state", "state":{ "page":"watch", "location":"/watch/80100172", "fullscreen":false, "player":{ "title":"…", "subtitle":"S1:E3 · …", "positionMs":512000, "durationMs":2940000, "paused":false, "volume":0.8, "muted":false, "skipLabel":"Intro überspringen", "canNext":false, … } } }
 ```
 
+Befehle: `player.*` (play, pause, toggle, seekBy, seekTo, setVolume, setMuted, skip, nextEpisode,
+setAudioTrack, setTextTrack, exit), `app.*` (fullscreen, openNetflix, browse) und `catalog.*`
+(get, loadMore, play, open, episode, season, profile, search, nav, back, debug).
+
 Jede Anfrage bekommt eine Antwort (`ok`/`error`), die App zeigt Fehler verständlich an
-(„Netflix-Tab nicht gefunden – öffnen?“ → Extension öffnet ihn).
+(„Netflix-Seite antwortet nicht – bitte neu laden“, „Netflix am PC öffnen“).
 
 ---
 
@@ -225,8 +251,17 @@ Jede Anfrage bekommt eine Antwort (`ok`/`error`), die App zeigt Fehler verständ
 | 1 – Verbindung | ✅ erledigt (PeerJS statt Cloudflare Worker, siehe 2.2) |
 | 2 – Player | ✅ erledigt |
 | Relay für gesperrte WLANs | ✅ erledigt (verschlüsselter MQTT-Relay parallel zu WebRTC) |
-| 3 – Katalog | ✅ erledigt (Reihen, Suche, Bereiche, Profile, Details mit Staffeln/Folgen) |
+| 3 – Katalog | ✅ erledigt und mit echtem Netflix getestet (Reihen mit Bildern und Fortschritt, Suche, Bereiche mit Markierung, Profile, Details mit Staffeln/Folgen) |
 | 4 – D-Pad | ⏭ nur falls der Katalog etwas nicht abdeckt |
+| 5 – Feinschliff | ✅ weitgehend: mehrere Rechner, Diagnose in der Handy-App, E2E-Test mit echter Extension und nachgebautem Netflix, automatische Releases |
+| 6 – Optional | offen |
+
+**Offen / nächste Schritte:**
+- Optional: D-Pad-Modus als Fallback (Phase 4).
+- Chrome Web Store: Datenschutzseite, neutraler Name ohne „Netflix“ als Markenname, Store-Upload im
+  Release-Workflow.
+- Beobachten: Selektoren für den Detaildialog (Staffelwahl) sind am wenigsten erprobt; bei Problemen
+  „Diagnose anzeigen“ nutzen und `extension/src/netflix/selectors.ts` anpassen.
 
 | Phase | Inhalt | Ergebnis |
 |-------|--------|----------|
