@@ -16,7 +16,9 @@ export const SEL = {
     ],
     back: ['[data-uia="control-nav-back"]'],
     videoTitle: '[data-uia="video-title"]',
-    profileGate: ['[data-uia="profile-link"]', '.list-profiles'],
+    profileGate: ['.list-profiles', '.profiles-gate-container', '[data-uia="profile-choices-page"]', '[data-uia="profile-link"]'],
+    /** Menus in the page header also contain profile links (profile switcher); those are not the gate. */
+    headerMenus: 'header, nav, [role="menu"], .account-menu, .account-dropdown-button, .sub-menu, .pinning-header',
     video: 'video',
 
     // ---- catalog (browse, search, title details) ----

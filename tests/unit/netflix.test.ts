@@ -76,6 +76,15 @@ describe('detectPageKind', () => {
         document.body.innerHTML = '<a data-uia="profile-link">Marcus</a>';
         expect(at('/browse')).toBe('profiles');
     });
+
+    it('ignores the profile switcher in the header menu of browse pages', () => {
+        document.body.innerHTML = `
+            <div class="pinning-header"><div class="account-menu"><ul class="sub-menu">
+                <li class="sub-menu-item profile-link"><a data-uia="profile-link" href="/SwitchProfile?tkn=1">Kinder</a></li>
+            </ul></div></div>
+            <div class="lolomoRow"><a href="/watch/1" aria-label="A"></a><a href="/watch/2" aria-label="B"></a><a href="/watch/3" aria-label="C"></a></div>`;
+        expect(at('/browse')).toBe('browse');
+    });
 });
 
 describe('getNetflixPlayer', () => {

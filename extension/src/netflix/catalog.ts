@@ -19,7 +19,7 @@ import type {
 import { detectPageKind } from './page-kind';
 import { SEL } from './selectors';
 
-const MAX_ITEMS_PER_ROW = 40;
+const MAX_ITEMS_PER_ROW = 30;
 const GENERIC_LINK_TEXT = /^(play|abspielen|wiedergabe|more info|weitere infos|mehr infos|resume|fortsetzen)$/i;
 
 export const SECTION_URLS: Record<CatalogSection, string> = {
@@ -117,8 +117,13 @@ function readRows(doc: Document): CatalogRow[] {
     return [...rows.values()].map(({ title, items }) => ({ title, items }));
 }
 
+/** Profile links of the gate, not the switcher in the header menu. */
+function profileLinks(doc: Document): HTMLElement[] {
+    return qa(doc, SEL.profileLink).filter((el) => !el.closest(SEL.headerMenus));
+}
+
 function readProfiles(doc: Document): Profile[] {
-    return qa(doc, SEL.profileLink).map((el, index) => ({
+    return profileLinks(doc).map((el, index) => ({
         index,
         name: text(q(el, SEL.profileName)) || el.getAttribute('aria-label') || text(el),
         img: imageOf(q(el, SEL.profileImage) ?? el),
@@ -199,10 +204,58 @@ async function chooseSeason(doc: Document, index: number): Promise<CommandResult
     return { ok: true };
 }
 
+/** Short CSS path of an element (tag.class#uia) for diagnostics. */
+function describe(el: Element | null, depth = 6): string {
+    const parts: string[] = [];
+    for (let e = el; e && e !== document.body && parts.length < depth; e = e.parentElement) {
+        const cls = Array.from(e.classList).slice(0, 3).join('.');
+        const uia = e.getAttribute('data-uia');
+        const ctx = e.getAttribute('data-list-context');
+        parts.unshift(`${e.tagName.toLowerCase()}${cls ? '.' + cls : ''}${uia ? `[uia=${uia}]` : ''}${ctx ? `[ctx=${ctx}]` : ''}`);
+    }
+    return parts.join(' > ');
+}
+
+/** What the page looks like to the scraper; the phone can show it so users can report markup changes. */
+export function diagnose(doc: Document): Record<string, unknown> {
+    const count = (sel: Sel) =>
+        Object.fromEntries((typeof sel === 'string' ? [sel] : sel).map((s) => [s, doc.querySelectorAll(s).length]));
+    const links = Array.from(doc.querySelectorAll<HTMLAnchorElement>(SEL.titleLinks));
+    const catalog = readCatalog(doc, 0, 50);
+    return {
+        version: globalThis.chrome?.runtime?.getManifest?.().version ?? '?',
+        location: location.pathname + location.search,
+        page: catalog.page,
+        titleLinks: links.length,
+        rows: catalog.rows.map((r) => `${r.title || '(ohne Titel)'}: ${r.items.length}`),
+        profiles: catalog.profiles.map((p) => p.name),
+        detail: catalog.detail && { title: catalog.detail.title, episodes: catalog.detail.episodes.length, seasons: catalog.detail.seasons },
+        selectors: {
+            row: count(SEL.row),
+            rowTitle: count(SEL.rowTitle),
+            card: count(SEL.card),
+            profileGate: count(SEL.profileGate),
+            detail: count(SEL.detail),
+            episode: count(SEL.episode),
+        },
+        sampleLinks: links.slice(0, 5).map((a) => ({
+            href: a.getAttribute('href')?.slice(0, 60),
+            label: a.getAttribute('aria-label'),
+            img: !!a.closest('div')?.querySelector('img'),
+            path: describe(a),
+        })),
+        sampleHeadings: Array.from(doc.querySelectorAll('h2, h3'))
+            .slice(0, 5)
+            .map((h) => `${text(h).slice(0, 40)} ← ${describe(h, 4)}`),
+    };
+}
+
 export async function runCatalogCommand(doc: Document, cmd: CatalogCommand): Promise<CommandResult> {
     switch (cmd.type) {
         case 'catalog.get':
             return { ok: true, data: readCatalog(doc, cmd.offset, cmd.limit) };
+        case 'catalog.debug':
+            return { ok: true, data: diagnose(doc) };
         case 'catalog.loadMore':
             // Netflix renders further rows only when they scroll into view.
             window.scrollBy({ top: window.innerHeight * 3 });
@@ -227,7 +280,7 @@ export async function runCatalogCommand(doc: Document, cmd: CatalogCommand): Pro
         case 'catalog.season':
             return chooseSeason(doc, cmd.index);
         case 'catalog.profile': {
-            const profile = qa(doc, SEL.profileLink)[cmd.index];
+            const profile = profileLinks(doc)[cmd.index];
             if (!profile) return { ok: false, error: 'Profil nicht gefunden' };
             profile.click();
             return { ok: true };

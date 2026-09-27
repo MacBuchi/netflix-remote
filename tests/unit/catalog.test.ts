@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { readCatalog, runCatalogCommand, videoIdFromHref } from '../../extension/src/netflix/catalog';
+import { diagnose, readCatalog, runCatalogCommand, videoIdFromHref } from '../../extension/src/netflix/catalog';
 
 const card = (id: string, name: string, extra = '') => `
     <div class="slider-item"><div class="title-card-container"><div class="title-card">
@@ -147,5 +147,16 @@ describe('runCatalogCommand', () => {
         const r = await runCatalogCommand(document, { type: 'catalog.get', offset: 0, limit: 1 });
         expect(r.ok).toBe(true);
         expect((r.data as any).rows).toHaveLength(1);
+    });
+});
+
+describe('diagnose', () => {
+    it('summarizes what the scraper sees', () => {
+        document.body.innerHTML = BROWSE;
+        const d = diagnose(document) as any;
+        expect(d.page).toBe('browse');
+        expect(d.rows).toEqual(['Weiterschauen für Marcus: 2', 'Derzeit beliebt: 1']);
+        expect(d.titleLinks).toBeGreaterThan(3);
+        expect(d.sampleLinks.some((l: any) => l.path.includes('div.lolomoRow'))).toBe(true);
     });
 });

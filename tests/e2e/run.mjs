@@ -39,6 +39,11 @@ const web = createServer(async (req, res) => {
 const aedes = await Aedes.createBroker();
 const mqttServer = new WebSocketServer({ host: '127.0.0.1', port: MQTT_PORT, path: '/mqtt' });
 mqttServer.on('connection', (ws) => aedes.handle(createWebSocketStream(ws)));
+// Public brokers cap message sizes; track the largest message to prove the relay stays small.
+let largestRelayMessage = 0;
+aedes.on('publish', (packet) => {
+    if (packet.topic.startsWith('nfr/')) largestRelayMessage = Math.max(largestRelayMessage, packet.payload.length);
+});
 
 const webrtcArgs = ['--disable-features=WebRtcHideLocalIpsWithMdns'];
 const pc = await chromium.launchPersistentContext('', {
@@ -51,6 +56,8 @@ const phoneBrowser = await chromium.launch({ args: webrtcArgs });
 const hotelPhoneBrowser = await chromium.launch({ args: ['--force-webrtc-ip-handling-policy=disable_non_proxied_udp'] });
 
 let failed = false;
+/** Pages whose visible text is printed when a step fails, to see what the user would have seen. */
+const watched = {};
 const step = async (name, fn) => {
     process.stdout.write(`• ${name} … `);
     try {
@@ -58,6 +65,10 @@ const step = async (name, fn) => {
         console.log('ok');
     } catch (e) {
         console.log('FAILED');
+        for (const [label, page] of Object.entries(watched)) {
+            const shown = await page.locator('body').innerText({ timeout: 2000 }).catch(() => '(closed)');
+            console.log(`--- ${label} shows:\n${shown.slice(0, 1500)}`);
+        }
         throw e;
     }
 };
@@ -92,6 +103,7 @@ try {
     const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker, r: config.relay })}`;
     const phoneCtx = await phoneBrowser.newContext({ viewport: { width: 400, height: 860 }, isMobile: true, hasTouch: true });
     const phone = await phoneCtx.newPage();
+    watched.phone = phone;
 
     await step('phone pairs via QR link and ends up on the direct WebRTC link', async () => {
         await phone.goto(pairingUrl);
@@ -176,6 +188,16 @@ try {
         await phone.getByRole('button', { name: 'Stranger Things' }).waitFor();
         await phone.getByRole('heading', { name: 'Derzeit beliebt' }).waitFor();
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-catalog.png') });
+    });
+
+    await step('catalog also loads through the relay, in parts small enough for public brokers', async () => {
+        const hotel = await (await hotelPhoneBrowser.newContext({ viewport: { width: 400, height: 860 } })).newPage();
+        await hotel.goto(pairingUrl);
+        await hotel.locator('.via', { hasText: 'Relay' }).waitFor({ timeout: 20_000 });
+        await hotel.getByRole('heading', { name: 'Reihe 3' }).waitFor({ timeout: 20_000 });
+        await hotel.getByRole('button', { name: 'Titel 3-29' }).waitFor();
+        assert.ok(largestRelayMessage > 0 && largestRelayMessage < 32_000, `largest relay message ${largestRelayMessage} bytes`);
+        await hotel.close();
     });
 
     await step('catalog: tapping a title and "Abspielen" starts it on the PC', async () => {

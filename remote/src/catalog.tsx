@@ -17,7 +17,7 @@ import { Icon } from './icons';
 type Send = (cmd: Command) => void;
 type Query = (cmd: CatalogCommand) => Promise<CommandResult>;
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 6;
 /** Netflix renders lazily after navigation; retry a few times while nothing is there yet. */
 const EMPTY_RETRIES = 4;
 const RETRY_MS = 1200;
@@ -37,6 +37,7 @@ function isEmpty(c: Catalog) {
 function useCatalog(state: RemoteState, query: Query) {
     const [catalog, setCatalog] = useState<Catalog | null>(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const generation = useRef(0);
 
     const load = async (retries = EMPTY_RETRIES) => {
@@ -48,6 +49,7 @@ function useCatalog(state: RemoteState, query: Query) {
             const res = await query({ type: 'catalog.get', offset: 0, limit: PAGE_SIZE });
             if (gen !== generation.current) return;
             const data = res.ok ? (res.data as Catalog) : null;
+            setError(res.ok ? null : (res.error ?? 'Unbekannter Fehler'));
             if (data) setCatalog(data);
             if (data && !isEmpty(data)) break;
         }
@@ -69,11 +71,12 @@ function useCatalog(state: RemoteState, query: Query) {
         setLoading(false);
     };
 
-    return { catalog, loading, reload: () => load(1), more };
+    return { catalog, loading, error, reload: () => load(1), more };
 }
 
 export function CatalogView({ state, send, query }: { state: RemoteState; send: Send; query: Query }) {
-    const { catalog, loading, reload, more } = useCatalog(state, query);
+    const { catalog, loading, error, reload, more } = useCatalog(state, query);
+    const empty = <Empty loading={loading} error={error} onReload={reload} query={query} />;
     const [selected, setSelected] = useState<CatalogItem | null>(null);
 
     // Actions that change the page without changing the URL (seasons) need a manual refresh.
@@ -94,7 +97,7 @@ export function CatalogView({ state, send, query }: { state: RemoteState; send: 
                         </button>
                     ))}
                 </div>
-                {!catalog?.profiles.length && <Empty loading={loading} onReload={reload} />}
+                {!catalog?.profiles.length && empty}
             </div>
         );
     }
@@ -130,7 +133,7 @@ export function CatalogView({ state, send, query }: { state: RemoteState; send: 
                             {loading ? 'Lädt …' : 'Weitere Reihen laden'}
                         </button>
                     )}
-                    {(!catalog || isEmpty(catalog)) && <Empty loading={loading} onReload={reload} />}
+                    {(!catalog || isEmpty(catalog)) && empty}
                 </>
             )}
 
@@ -278,19 +281,60 @@ function DetailView({ detail, act }: { detail: TitleDetail; act: (cmd: CatalogCo
     );
 }
 
-function Empty({ loading, onReload }: { loading: boolean; onReload: () => void }) {
+function Empty({ loading, error, onReload, query }: {
+    loading: boolean;
+    error: string | null;
+    onReload: () => void;
+    query: Query;
+}) {
     return (
         <div class="center empty">
             {loading ? (
                 <div class="spinner" />
             ) : (
                 <>
-                    <p class="muted">Hier ist gerade nichts zu sehen. Netflix lädt am PC vielleicht noch.</p>
+                    <p class="muted">
+                        {error
+                            ? `Der PC hat nicht geantwortet: ${error}`
+                            : 'Hier ist gerade nichts zu sehen. Netflix lädt am PC vielleicht noch.'}
+                    </p>
                     <button class="btn" onClick={onReload}>
                         <Icon name="refresh" size={20} /> Aktualisieren
                     </button>
+                    <Diagnose query={query} />
                 </>
             )}
+        </div>
+    );
+}
+
+/** Shows how the extension sees the Netflix page, so users can send it when the catalog stays empty. */
+function Diagnose({ query }: { query: Query }) {
+    const [report, setReport] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+    const run = async () => {
+        const res = await query({ type: 'catalog.debug' });
+        setReport(res.ok ? JSON.stringify(res.data, null, 1) : `Fehler: ${res.error ?? 'keine Antwort'}`);
+    };
+    if (!report) {
+        return (
+            <button class="link" onClick={run}>
+                Diagnose anzeigen
+            </button>
+        );
+    }
+    return (
+        <div class="diagnose">
+            <textarea readOnly value={report} rows={12} aria-label="Diagnose" />
+            <button
+                class="btn"
+                onClick={async () => {
+                    await navigator.clipboard?.writeText(report).catch(() => {});
+                    setCopied(true);
+                }}
+            >
+                {copied ? 'Kopiert ✓' : 'Kopieren'}
+            </button>
         </div>
     );
 }

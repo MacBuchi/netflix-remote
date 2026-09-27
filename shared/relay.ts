@@ -13,6 +13,10 @@ export const DEFAULT_RELAY = 'wss://broker.hivemq.com:8884/mqtt';
 
 /** Messages older than this (or from a clock this far ahead) are dropped. */
 const MAX_AGE_MS = 2 * 60 * 1000;
+/** Public brokers limit message size; larger sealed messages are sent in parts of this many characters. */
+const CHUNK_CHARS = 24_000;
+const CHUNK_PREFIX = 'c1|';
+const CHUNK_TTL_MS = 30_000;
 
 export interface RelayKeys {
     base: string;
@@ -96,6 +100,8 @@ export type RelayState = 'connecting' | 'online' | 'offline';
 export class RelayChannel {
     private client: MqttClient | null = null;
     private opener: Opener;
+    /** Partially received chunked messages: id → parts. */
+    private partial = new Map<string, { parts: string[]; got: number; at: number }>();
     state: RelayState = 'connecting';
 
     constructor(
@@ -124,7 +130,9 @@ export class RelayChannel {
         client.on('offline', () => this.setState('offline'));
         client.on('error', () => this.setState('offline'));
         client.on('message', async (_topic, payload) => {
-            const env = await this.opener.open(payload.toString());
+            const sealed = this.reassemble(payload.toString());
+            if (!sealed) return;
+            const env = await this.opener.open(sealed);
             if (env) this.onEnvelope(env);
         });
     }
@@ -137,11 +145,50 @@ export class RelayChannel {
 
     async publish(topic: string, env: Omit<Envelope, 'ts'>) {
         if (!this.client?.connected) return;
-        this.client.publish(topic, await seal(this.keys, { ...env, ts: Date.now() }), { qos: 0 });
+        for (const part of chunk(await seal(this.keys, { ...env, ts: Date.now() }))) {
+            this.client.publish(topic, part, { qos: 0 });
+        }
+    }
+
+    /** Returns a complete sealed message, or null while parts are still missing. */
+    private reassemble(payload: string): string | null {
+        const parsed = parseChunk(payload);
+        if (!parsed) return payload;
+        const now = Date.now();
+        for (const [id, p] of this.partial) if (now - p.at > CHUNK_TTL_MS) this.partial.delete(id);
+        const { id, index, total, data } = parsed;
+        let entry = this.partial.get(id);
+        if (!entry) {
+            entry = { parts: new Array(total).fill(''), got: 0, at: now };
+            this.partial.set(id, entry);
+        }
+        if (entry.parts.length !== total || entry.parts[index]) return null;
+        entry.parts[index] = data;
+        if (++entry.got < total) return null;
+        this.partial.delete(id);
+        return entry.parts.join('');
     }
 
     stop() {
         this.client?.end(true);
         this.client = null;
     }
+}
+
+/** Splits a sealed message into broker-sized parts ("c1|id|index|total|data"); small ones stay whole. */
+export function chunk(sealed: string, size = CHUNK_CHARS): string[] {
+    if (sealed.length <= size) return [sealed];
+    const id = crypto.getRandomValues(new Uint32Array(2)).join('');
+    const total = Math.ceil(sealed.length / size);
+    return Array.from({ length: total }, (_, i) => `${CHUNK_PREFIX}${id}|${i}|${total}|${sealed.slice(i * size, (i + 1) * size)}`);
+}
+
+export function parseChunk(payload: string): { id: string; index: number; total: number; data: string } | null {
+    if (!payload.startsWith(CHUNK_PREFIX)) return null;
+    const [id, index, total] = payload.slice(CHUNK_PREFIX.length).split('|', 3);
+    const head = `${CHUNK_PREFIX}${id}|${index}|${total}|`;
+    const i = Number(index);
+    const n = Number(total);
+    if (!id || !Number.isInteger(i) || !Number.isInteger(n) || n < 1 || n > 200 || i < 0 || i >= n) return null;
+    return { id, index: i, total: n, data: payload.slice(head.length) };
 }
