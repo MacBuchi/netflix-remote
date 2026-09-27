@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchRatings, parseOmdb, setOmdbKey } from '../../remote/src/ratings';
+import { fetchRatings, parseOmdb, setOmdbKey, testOmdbKey } from '../../remote/src/ratings';
 
 const FULL = {
     Response: 'True',
@@ -63,6 +63,18 @@ describe('fetchRatings', () => {
 
         expect((await fetchRatings('inception', 'movie'))?.imdb).toBe('8.8');
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('function test looks up a known film with the given key', async () => {
+        fetchMock.mockResolvedValue({ json: async () => ({ ...FULL, Title: 'The Shawshank Redemption', imdbRating: '9.3' }) });
+        await expect(testOmdbKey(' k3y ')).resolves.toEqual({
+            title: 'The Shawshank Redemption',
+            ratings: expect.objectContaining({ imdb: '9.3' }),
+        });
+        expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get('apikey')).toBe('k3y');
+
+        fetchMock.mockResolvedValue({ json: async () => ({ Response: 'False', Error: 'Invalid API key!' }) });
+        await expect(testOmdbKey('bad')).rejects.toBe('key');
     });
 
     it('caches misses too, but not errors', async () => {

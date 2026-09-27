@@ -49,7 +49,7 @@ const OMDB_TITLES = {
 };
 const omdb = (route) => {
     const p = new URL(route.request().url()).searchParams;
-    const found = p.get('i') ? { imdbID: p.get('i'), imdbRating: '9.3' } : OMDB_TITLES[p.get('t')];
+    const found = p.get('i') ? { Title: 'Testfilm', imdbID: p.get('i'), imdbRating: '9.3' } : OMDB_TITLES[p.get('t')];
     const body =
         p.get('apikey') !== 'test-key'
             ? { Response: 'False', Error: 'Invalid API key!' }
@@ -267,7 +267,13 @@ try {
         await settings.getByRole('button', { name: 'Speichern' }).click();
         await settings.getByText('nicht angenommen').waitFor();
         await settings.getByLabel('OMDb-Schlüssel').fill('test-key');
-        await settings.getByRole('button', { name: 'Speichern' }).click();
+        await settings.getByRole('button', { name: 'Speichern & testen' }).click();
+        // The function test answers with a real lookup; the sheet stays open to show it.
+        await settings.getByRole('status').filter({ hasText: 'Funktioniert: „Testfilm“ – IMDb 9,3' }).waitFor();
+        await settings.getByRole('link', { name: 'omdbapi.com/apikey.aspx' }).waitFor();
+        await settings.getByRole('button', { name: 'Erneut testen' }).waitFor();
+        if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-settings.png') });
+        await settings.getByRole('button', { name: 'Schließen' }).click();
         await settings.waitFor({ state: 'detached' });
 
         await phone.getByRole('button', { name: 'Sternenstaub' }).click();

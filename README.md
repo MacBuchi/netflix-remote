@@ -91,7 +91,10 @@ dafür einen eigenen, kostenlosen Schlüssel (1.000 Abfragen pro Tag):
 
 1. Auf [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) „FREE“ wählen und die E-Mail-Adresse eintragen.
 2. Den Aktivierungslink in der E-Mail anklicken.
-3. In der Handy-App oben rechts auf das Zahnrad tippen und den Schlüssel eintragen.
+3. In der Handy-App oben rechts auf das Zahnrad tippen, den Schlüssel eintragen und „Speichern & testen“ tippen.
+   Die App schlägt zur Probe einen bekannten Film nach und meldet „✓ Funktioniert …“ oder, was nicht stimmt.
+
+Die Schritte und der Link zu OMDb stehen auch direkt in den Einstellungen der App.
 
 Die App fragt nur beim Öffnen eines Titels (Titel-Blatt, Details, Empfehlung) und merkt sich die Antworten
 eine Woche. Die Zuordnung läuft über den Titelnamen: Deutsche Netflix-Titel, die bei IMDb anders heißen,

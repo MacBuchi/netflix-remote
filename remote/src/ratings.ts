@@ -90,7 +90,7 @@ export function parseOmdb(json: any): Ratings | null {
     return r.imdb || r.rottenTomatoes || r.metacritic ? r : null;
 }
 
-async function omdb(params: Record<string, string>, key: string): Promise<Ratings | null> {
+async function omdbJson(params: Record<string, string>, key: string): Promise<any> {
     let res: Response;
     try {
         res = await fetch(`${OMDB}?${new URLSearchParams({ apikey: key, ...params })}`, { referrerPolicy: 'no-referrer' });
@@ -98,12 +98,17 @@ async function omdb(params: Record<string, string>, key: string): Promise<Rating
         throw 'network' satisfies RatingsError;
     }
     // OMDb answers 401 for bad keys, with the reason in the body.
-    return parseOmdb(await res.json().catch(() => null));
+    return res.json().catch(() => null);
 }
 
-/** Checks a key with a known title; resolves when it works. */
-export async function testOmdbKey(key: string): Promise<void> {
-    await omdb({ i: 'tt0111161' }, key.trim());
+const omdb = async (params: Record<string, string>, key: string) => parseOmdb(await omdbJson(params, key));
+
+/** Function test for a key: looks up a well-known film and returns its title and ratings. */
+export async function testOmdbKey(key: string): Promise<{ title: string; ratings: Ratings }> {
+    const json = await omdbJson({ i: 'tt0111161' }, key.trim());
+    const ratings = parseOmdb(json);
+    if (!ratings) throw 'network' satisfies RatingsError;
+    return { title: String(json.Title ?? 'Testtitel'), ratings };
 }
 
 const cacheKey = (title: string, kind?: Kind) => `${kind ?? '*'}:${title.toLowerCase()}`;

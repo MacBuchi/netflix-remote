@@ -191,18 +191,21 @@ function Settings({ onClose }: { onClose: () => void }) {
     const saved = useOmdbKey();
     const [key, setKey] = useState(saved ?? '');
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+    const unchanged = !!saved && key.trim() === saved;
 
+    // Saving always runs the function test, so a working key is confirmed with a real answer.
     const save = async (e: Event) => {
         e.preventDefault();
         setBusy(true);
-        setError(null);
+        setResult(null);
         try {
-            await testOmdbKey(key);
+            const { title, ratings } = await testOmdbKey(key);
             setOmdbKey(key);
-            onClose();
+            const imdb = ratings.imdb ? ` – IMDb ${ratings.imdb.replace('.', ',')}` : '';
+            setResult({ ok: true, text: `Funktioniert: „${title}“${imdb}. Bewertungen erscheinen jetzt bei Titeln.` });
         } catch (err) {
-            setError(KEY_ERRORS[err as RatingsError] ?? String(err));
+            setResult({ ok: false, text: KEY_ERRORS[err as RatingsError] ?? String(err) });
         } finally {
             setBusy(false);
         }
@@ -213,13 +216,20 @@ function Settings({ onClose }: { onClose: () => void }) {
             <div class="sheet settings" role="dialog" aria-label="Einstellungen" onClick={(e) => e.stopPropagation()}>
                 <h2>Bewertungen</h2>
                 <p class="muted">
-                    Zeigt bei Titeln die Bewertungen von IMDb, Rotten Tomatoes und Metacritic. Sie kommen vom Dienst OMDb,
-                    dafür brauchst du einen eigenen, kostenlosen Schlüssel (1.000 Abfragen pro Tag):{' '}
-                    <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer">
-                        Schlüssel bei omdbapi.com anfordern
-                    </a>
-                    , den Link in der E-Mail bestätigen und den Schlüssel hier eintragen.
+                    Zeigt bei Titeln die Bewertungen von IMDb, Rotten Tomatoes und Metacritic. Sie kommen vom Dienst{' '}
+                    <a href="https://www.omdbapi.com/" target="_blank" rel="noopener noreferrer">OMDb</a>; dafür brauchst du
+                    einen eigenen, kostenlosen Schlüssel (1.000 Abfragen pro Tag).
                 </p>
+                <ol class="steps key-steps">
+                    <li>
+                        <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer">
+                            omdbapi.com/apikey.aspx
+                        </a>{' '}
+                        öffnen, „FREE! (1,000 daily limit)“ wählen, E-Mail-Adresse und Namen eintragen, absenden.
+                    </li>
+                    <li>In der E-Mail von OMDb den Aktivierungslink antippen – erst dann gilt der Schlüssel.</li>
+                    <li>Den Schlüssel aus der E-Mail (8 Zeichen) hier eintragen und „Speichern & testen“ tippen.</li>
+                </ol>
                 <form class="key-form" onSubmit={save}>
                     <input
                         aria-label="OMDb-Schlüssel"
@@ -231,12 +241,17 @@ function Settings({ onClose }: { onClose: () => void }) {
                         onInput={(e) => setKey((e.target as HTMLInputElement).value)}
                     />
                     <button class="btn primary" disabled={busy || !key.trim()}>
-                        {busy ? 'Prüfe …' : 'Speichern'}
+                        {busy ? 'Teste …' : unchanged ? 'Erneut testen' : 'Speichern & testen'}
                     </button>
                 </form>
-                {error && <p class="error-text">{error}</p>}
+                {result && (
+                    <p class={result.ok ? 'ok-text' : 'error-text'} role="status">
+                        {result.ok ? '✓ ' : ''}
+                        {result.text}
+                    </p>
+                )}
                 {saved && (
-                    <button class="link" onClick={() => (setOmdbKey(null), setKey(''))}>
+                    <button class="link" onClick={() => (setOmdbKey(null), setKey(''), setResult(null))}>
                         Schlüssel entfernen
                     </button>
                 )}
