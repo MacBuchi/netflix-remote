@@ -1,8 +1,9 @@
 // Content script in the Netflix tab (isolated world). Relays commands from the
 // service worker to page.ts and streams the tab's state back while a phone is connected.
 
-import type { CommandResult, PlayerCommand, PlayerState } from '../../shared/protocol';
+import type { CatalogCommand, CommandResult, PlayerCommand, PlayerState } from '../../shared/protocol';
 import type { ContentMsg, PageCall, PageRequest, PageResponse, SwMsg, TabState } from './messages';
+import { runCatalogCommand } from './netflix/catalog';
 import { detectPageKind } from './netflix/page-kind';
 
 const STATE_INTERVAL_MS = 1000;
@@ -44,7 +45,7 @@ function init() {
     async function collectState(): Promise<TabState> {
         const page = detectPageKind(window.location, document);
         const player = page === 'watch' ? ((await askPage({ kind: 'state' })) as PlayerState | null | undefined) : null;
-        return { page, player: player ?? null };
+        return { page, location: window.location.pathname + window.location.search, player: player ?? null };
     }
 
     async function pushState() {
@@ -65,9 +66,12 @@ function init() {
         }
     }
 
-    async function runCommand(cmd: PlayerCommand): Promise<CommandResult> {
-        const result = (await askPage({ kind: 'command', cmd })) as CommandResult | undefined;
-        setTimeout(pushState, 300);
+    async function runCommand(cmd: PlayerCommand | CatalogCommand): Promise<CommandResult> {
+        // The catalog is plain DOM work; the player needs Netflix's own API in the page world.
+        const result = cmd.type.startsWith('catalog.')
+            ? await runCatalogCommand(document, cmd as CatalogCommand).catch((e) => ({ ok: false, error: String(e) }))
+            : ((await askPage({ kind: 'command', cmd: cmd as PlayerCommand })) as CommandResult | undefined);
+        if (cmd.type !== 'catalog.get') setTimeout(pushState, 300);
         return result ?? { ok: false, error: 'Netflix-Seite antwortet nicht – bitte neu laden' };
     }
 

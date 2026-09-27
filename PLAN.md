@@ -225,7 +225,8 @@ Jede Anfrage bekommt eine Antwort (`ok`/`error`), die App zeigt Fehler verständ
 | 1 – Verbindung | ✅ erledigt (PeerJS statt Cloudflare Worker, siehe 2.2) |
 | 2 – Player | ✅ erledigt |
 | Relay für gesperrte WLANs | ✅ erledigt (verschlüsselter MQTT-Relay parallel zu WebRTC) |
-| 3 – Katalog | ⏭ als Nächstes |
+| 3 – Katalog | ✅ erledigt (Reihen, Suche, Bereiche, Profile, Details mit Staffeln/Folgen) |
+| 4 – D-Pad | ⏭ nur falls der Katalog etwas nicht abdeckt |
 
 | Phase | Inhalt | Ergebnis |
 |-------|--------|----------|

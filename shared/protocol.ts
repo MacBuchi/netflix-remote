@@ -23,7 +23,70 @@ export type AppCommand =
     | { type: 'app.openNetflix' }
     | { type: 'app.browse' };
 
-export type Command = PlayerCommand | AppCommand;
+export type CatalogSection = 'home' | 'series' | 'movies' | 'new' | 'mylist';
+
+/** Film browser: read what Netflix shows on the PC and act on it. */
+export type CatalogCommand =
+    | { type: 'catalog.get'; offset: number; limit: number }
+    | { type: 'catalog.loadMore' }
+    | { type: 'catalog.play'; id: string }
+    | { type: 'catalog.open'; id: string }
+    | { type: 'catalog.episode'; index: number }
+    | { type: 'catalog.season'; index: number }
+    | { type: 'catalog.profile'; index: number }
+    | { type: 'catalog.search'; q: string }
+    | { type: 'catalog.nav'; section: CatalogSection }
+    | { type: 'catalog.back' };
+
+export type Command = PlayerCommand | AppCommand | CatalogCommand;
+
+export interface CatalogItem {
+    /** Netflix video id (movie or show). */
+    id: string;
+    name: string;
+    img: string | null;
+    /** Watch progress 0..1, if Netflix shows one. */
+    progress: number | null;
+}
+
+export interface CatalogRow {
+    title: string;
+    items: CatalogItem[];
+}
+
+export interface Profile {
+    index: number;
+    name: string;
+    img: string | null;
+}
+
+export interface Episode {
+    index: number;
+    label: string;
+    title: string;
+    synopsis: string;
+    img: string | null;
+    progress: number | null;
+}
+
+export interface TitleDetail {
+    id: string | null;
+    title: string;
+    synopsis: string;
+    img: string | null;
+    seasons: string[];
+    season: number;
+    episodes: Episode[];
+}
+
+export interface Catalog {
+    page: PageKind;
+    rows: CatalogRow[];
+    /** Number of rows available on the PC; rows beyond offset+limit can be fetched later. */
+    totalRows: number;
+    profiles: Profile[];
+    detail: TitleDetail | null;
+}
 
 export interface Track {
     id: string;
@@ -51,6 +114,8 @@ export type PageKind = 'none' | 'profiles' | 'browse' | 'title' | 'search' | 'wa
 
 export interface RemoteState {
     page: PageKind;
+    /** Path and query of the Netflix tab, so the phone notices navigation. */
+    location: string;
     fullscreen: boolean;
     player: PlayerState | null;
 }
@@ -89,6 +154,7 @@ export interface ResponseMsg {
     re: string;
     ok: boolean;
     error?: string;
+    data?: unknown;
 }
 export interface StateMsg {
     v: number;
@@ -106,11 +172,17 @@ export type PcMsg = WelcomeMsg | ResponseMsg | StateMsg | ErrorMsg;
 export interface CommandResult {
     ok: boolean;
     error?: string;
+    /** Payload for queries such as catalog.get. */
+    data?: unknown;
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const isStr = (x: unknown, max = 200): x is string => typeof x === 'string' && x.length <= max;
+
+const isInt = (x: unknown, min: number, max: number): x is number =>
+    typeof x === 'number' && Number.isInteger(x) && x >= min && x <= max;
+const CATALOG_SECTIONS: CatalogSection[] = ['home', 'series', 'movies', 'new', 'mylist'];
 
 const MAX_SEEK_MS = 24 * 60 * 60 * 1000;
 
@@ -126,7 +198,26 @@ export function parseCommand(x: unknown): Command | null {
         case 'player.exit':
         case 'app.openNetflix':
         case 'app.browse':
+        case 'catalog.loadMore':
+        case 'catalog.back':
             return { type: x.type };
+        case 'catalog.get':
+            return isInt(x.offset, 0, 500) && isInt(x.limit, 1, 20)
+                ? { type: x.type, offset: x.offset, limit: x.limit }
+                : null;
+        case 'catalog.play':
+        case 'catalog.open':
+            return typeof x.id === 'string' && /^\d{1,12}$/.test(x.id) ? { type: x.type, id: x.id } : null;
+        case 'catalog.episode':
+        case 'catalog.season':
+        case 'catalog.profile':
+            return isInt(x.index, 0, 500) ? { type: x.type, index: x.index } : null;
+        case 'catalog.search':
+            return isStr(x.q, 100) && x.q.trim() ? { type: x.type, q: x.q.trim() } : null;
+        case 'catalog.nav':
+            return typeof x.section === 'string' && CATALOG_SECTIONS.includes(x.section as CatalogSection)
+                ? { type: x.type, section: x.section as CatalogSection }
+                : null;
         case 'player.seekBy':
             return isNum(x.ms) && Math.abs(x.ms) <= MAX_SEEK_MS ? { type: x.type, ms: Math.round(x.ms) } : null;
         case 'player.seekTo':

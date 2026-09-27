@@ -1,10 +1,16 @@
 # Couch Remote für Netflix
 
-Netflix läuft in Chrome auf PC oder Mac, das Android-Handy ist die Fernbedienung.
-Aktuell: vollständige Player-Steuerung. Als Nächstes: Film-Browser auf dem Handy (siehe [PLAN.md](PLAN.md)).
+Netflix läuft in Chrome auf PC oder Mac, das Android-Handy ist die Fernbedienung – für den Player
+und für die Auswahl von Filmen und Serien (siehe auch [PLAN.md](PLAN.md)).
 
 ## Funktionen
 
+**Film-Browser auf dem Handy**
+- Reihen wie „Weiterschauen“ oder „Derzeit beliebt“ mit Bildern und Fortschritt, weitere Reihen nachladen
+- Suche, Bereiche (Start, Serien, Filme, Neu, Meine Liste), Profilauswahl
+- Titel antippen → „Abspielen“ oder „Details & Folgen“ mit Staffelwahl und Folgenliste
+
+**Player**
 - Play/Pause, ±10 Sekunden, Zeitleiste zum Springen
 - Lautstärke (Regler, Leiser/Lauter, Stumm)
 - Intro/Rückblick überspringen, nächste Folge
@@ -67,6 +73,8 @@ Handy (PWA) ──WebRTC-Datenkanal──► Extension: Offscreen-Dokument ─�
 - **Sicherheit:** Der QR-Code enthält einen geheimen Schlüssel (im `#`-Teil der Adresse, er geht nie an
   einen Webserver). Ohne ihn nimmt die Extension keine Befehle an; erlaubt sind nur die festen Befehle aus
   `shared/protocol.ts`.
+- **Film-Browser:** Die Extension liest, was Netflix am PC anzeigt (Links auf `/watch/…`, `aria-label`, Bilder),
+  und schickt es als Liste ans Handy; Aktionen werden am PC ausgeführt. Die Bilder lädt das Handy direkt von Netflix.
 - **Netflix-Steuerung:** über die interne Player-API von Netflix, mit Rückfall auf das `<video>`-Element und
   die `data-uia`-Schaltflächen. Alle Netflix-Selektoren stehen in `extension/src/netflix/selectors.ts`.
 - **Vollbild:** Echtes Vollbild braucht in Chrome einen Klick am PC; stattdessen schaltet die Extension das
