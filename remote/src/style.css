@@ -132,6 +132,17 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 32px; }
 .chip:active { background: var(--surface-2); }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 
+/* Billboard: edge to edge, image fading into the page like on Netflix. */
+.catalog > .hero { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.hero-media { position: relative; aspect-ratio: 16 / 9; background: var(--surface); overflow: hidden; }
+.hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 45%, var(--bg) 100%); }
+.hero-title { position: absolute; left: 16px; right: 16px; bottom: 10px; }
+.hero-title h2 { margin: 0; font-size: 26px; text-shadow: 0 2px 8px rgb(0 0 0 / 60%); }
+.hero-logo { display: block; max-width: 60%; max-height: 72px; object-fit: contain; object-position: left bottom; }
+.hero-synopsis { margin: 0 16px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.hero-actions { margin: 0 16px; }
+
 .cat-row { margin-right: 0; }
 .cat-row h3 { margin: 0 0 8px; font-size: 16px; }
 .strip { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding-right: 16px; }

@@ -103,6 +103,19 @@ export interface Catalog {
     totalRows: number;
     profiles: Profile[];
     detail: TitleDetail | null;
+    /** The large recommendation on top of browse pages; missing from extensions before 2.2.4. */
+    billboard?: Billboard | null;
+}
+
+/** Netflix's "billboard": the full-width recommendation whose trailer starts on the PC. */
+export interface Billboard {
+    id: string;
+    title: string;
+    synopsis: string;
+    /** Wide background image. */
+    img: string | null;
+    /** Title treatment (the title as a logo image), if Netflix shows one. */
+    logo: string | null;
 }
 
 export interface Track {

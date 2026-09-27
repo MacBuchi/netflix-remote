@@ -11,6 +11,7 @@ import type {
     CatalogItem,
     CatalogRow,
     CommandResult,
+    Billboard,
     Episode,
     Profile,
     TitleDetail,
@@ -110,6 +111,24 @@ function readRows(doc: Document): CatalogRow[] {
     return [...rows.values()].map(({ title, items }) => ({ title, items }));
 }
 
+function readBillboard(doc: Document): Billboard | null {
+    const root = q(doc, SEL.billboard);
+    if (!root) return null;
+    const links = Array.from(root.querySelectorAll(SEL.billboardLinks));
+    const id =
+        links.map((el) => videoIdFromHref(el.getAttribute('href')) ?? el.getAttribute('data-videoid')).find((x) => x && /^\d+$/.test(x)) ??
+        null;
+    if (!id) return null;
+    const logo = q<HTMLImageElement>(root, SEL.billboardLogo);
+    // The background is the large image that is not the title logo.
+    const hero = q(root, SEL.billboardImage) ?? Array.from(root.querySelectorAll('img')).find((img) => img !== logo) ?? null;
+    const label = links.map((el) => el.getAttribute('aria-label')?.trim() ?? '').find((l) => l && !GENERIC_LINK_TEXT.test(l));
+    const title = logo?.getAttribute('alt')?.trim() || label || text(q(root, '.billboard-title'));
+    const img = imageOf(hero);
+    if (!title && !img) return null;
+    return { id, title, synopsis: text(q(root, SEL.billboardSynopsis)), img, logo: imageOf(logo) };
+}
+
 /** Profile links of the gate, not the switcher in the header menu. */
 function profileLinks(doc: Document): HTMLElement[] {
     return qa(doc, SEL.profileLink).filter((el) => !el.closest(SEL.headerMenus));
@@ -168,6 +187,7 @@ export function readCatalog(doc: Document, offset = 0, limit = 8): Catalog {
         totalRows: rows.length,
         profiles: page === 'profiles' ? readProfiles(doc) : [],
         detail: page === 'title' ? readDetail(doc) : null,
+        billboard: page === 'browse' ? readBillboard(doc) : null,
     };
 }
 
@@ -223,12 +243,16 @@ export function diagnose(doc: Document): Record<string, unknown> {
         rows: catalog.rows.map((r) => `${r.title || '(ohne Titel)'}: ${r.items.length}`),
         profiles: catalog.profiles.map((p) => p.name),
         detail: catalog.detail && { title: catalog.detail.title, episodes: catalog.detail.episodes.length, seasons: catalog.detail.seasons },
+        billboard: catalog.billboard && { ...catalog.billboard, img: !!catalog.billboard.img, logo: !!catalog.billboard.logo },
         selectors: {
             row: count(SEL.row),
             rowTitle: count(SEL.rowTitle),
             card: count(SEL.card),
             profileGate: count(SEL.profileGate),
             detail: count(SEL.detail),
+            billboard: count(SEL.billboard),
+            billboardLogo: count(SEL.billboardLogo),
+            billboardImage: count(SEL.billboardImage),
             episode: count(SEL.episode),
         },
         sampleLinks: links.slice(0, 5).map((a) => ({

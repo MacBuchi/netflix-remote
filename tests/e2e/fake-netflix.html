@@ -45,7 +45,13 @@
                 const filler = (r) => Array.from({ length: 30 }, (_, i) => [`${60000 + r * 100 + i}`, `Titel ${r}-${i}`]);
                 document.body.innerHTML =
                     header +
-                    `<div class="billboard-row"><a href="/watch/1" aria-label="Abspielen">Abspielen</a></div>` +
+                    // Billboard: full-width recommendation with title logo; Netflix plays its trailer here.
+                    `<div class="billboard-row"><div class="billboard billboard-pane">
+                        <div class="hero-image-wrapper"><img class="hero static-image" src="${img('The Crown', '80025678')}&hero=1"></div>
+                        <div class="billboard-title"><img class="title-logo" alt="The Crown" src="${img('The Crown', '80025678')}&logo=1"></div>
+                        <div class="billboard-description"><div class="synopsis">Die Regentschaft von Königin Elisabeth II. – Intrigen, Liebe und Politik.</div></div>
+                        <div class="billboard-links"><a class="playLink" href="/watch/80025678?trackId=1"><button data-uia="play-button">Abspielen</button></a><button data-uia="billboard-more-info">Weitere Infos</button></div>
+                    </div></div>` +
                     row('Weiterschauen', [['80100172', 'Dark', 35], ['80057281', 'Stranger Things', 70]]) +
                     row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Squid Game']]) +
                     [1, 2, 3, 4, 5].map((r) => row(`Reihe ${r}`, filler(r))).join('');
