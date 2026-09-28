@@ -164,7 +164,10 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 32px; }
 /* Settings */
 .header-btn { margin: -8px -8px -8px auto; width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); display: grid; place-items: center; }
 .via + .header-btn { margin-left: 0; }
+.settings { max-height: 88vh; overflow-y: auto; }
 .settings h2 { margin: 0; padding-right: 48px; }
+.settings h2 + p { margin-top: -6px; }
+.settings .diagnose textarea { background: var(--bg); }
 .settings .sheet-close { top: 12px; right: 12px; }
 .settings p { margin: 0; }
 .settings a { color: #a896ff; }

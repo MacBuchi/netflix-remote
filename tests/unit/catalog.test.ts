@@ -86,6 +86,13 @@ describe('readCatalog', () => {
         expect(c.rows[0].items.map((i) => i.name)).toEqual(['A', 'B']);
     });
 
+    it('takes only the result grid on the search page, not rows or suggestions around it', () => {
+        history.replaceState(null, '', '/search?q=dark');
+        document.body.innerHTML = BROWSE + `<div class="search-page"><div class="gallery search">${card('1', 'Dark')}${card('2', 'Dark Matter')}</div></div>`;
+        const c = readCatalog(document);
+        expect(c.rows.flatMap((r) => r.items.map((i) => i.name))).toEqual(['Dark', 'Dark Matter']);
+    });
+
     it('reads the billboard with logo, synopsis and background image', () => {
         document.body.innerHTML =
             `<div class="billboard-row"><div class="billboard billboard-pane">
@@ -239,7 +246,7 @@ describe('diagnose', () => {
         document.body.innerHTML = BROWSE;
         const d = diagnose(document) as any;
         expect(d.page).toBe('browse');
-        expect(d.rows).toEqual(['Weiterschauen für Marcus: 2', 'Derzeit beliebt: 1']);
+        expect(d.rows).toEqual(['Weiterschauen für Marcus: 2 – Dark, Stranger Things', 'Derzeit beliebt: 1 – Squid Game']);
         expect(d.titleLinks).toBeGreaterThan(3);
         expect(d.sampleLinks.some((l: any) => l.path.includes('div.lolomoRow'))).toBe(true);
     });

@@ -10,7 +10,7 @@ import {
     type PlayerState,
     type RemoteState,
 } from '../../shared/protocol';
-import { CatalogView } from './catalog';
+import { CatalogView, Diagnose } from './catalog';
 import { RemoteClient, deviceName, type ClientSnapshot } from './client';
 import { Icon, type IconName } from './icons';
 import { activePeerId, consumePairingFromUrl, loadPairings, removePairing, setActive } from './pairings';
@@ -143,7 +143,9 @@ function App() {
                 )}
             </main>
             {toast && <div class="toast">{toast}</div>}
-            {settings && <Settings onClose={() => setSettings(false)} />}
+            {settings && (
+                <Settings onClose={() => setSettings(false)} query={snap?.status === 'connected' ? query : null} />
+            )}
         </div>
     );
 }
@@ -187,7 +189,11 @@ const KEY_ERRORS: Record<RatingsError, string> = {
 };
 
 /** Ratings setup: each user brings an own free OMDb key; nothing is requested without one. */
-function Settings({ onClose }: { onClose: () => void }) {
+function Settings({ onClose, query }: {
+    onClose: () => void;
+    /** Only while connected: lets the user see how the extension reads the current Netflix page. */
+    query: ((cmd: CatalogCommand) => Promise<CommandResult>) | null;
+}) {
     const saved = useOmdbKey();
     const [key, setKey] = useState(saved ?? '');
     const [busy, setBusy] = useState(false);
@@ -275,6 +281,16 @@ function Settings({ onClose }: { onClose: () => void }) {
                     <button class="link" onClick={() => (setOmdbKey(null), setKey(''), setResult(null))}>
                         Schlüssel entfernen
                     </button>
+                )}
+                {query && (
+                    <>
+                        <h2>Hilfe bei Problemen</h2>
+                        <p class="muted">
+                            Zeigt, was die Extension auf der Netflix-Seite am PC gerade erkennt. Bei falschen oder fehlenden
+                            Einträgen die Diagnose kopieren und mitschicken.
+                        </p>
+                        <Diagnose query={query} />
+                    </>
                 )}
                 <p class="muted legal">
                     Mit Schlüssel fragt das Handy OMDb nach den Titelnamen, die du öffnest; Ergebnisse bleiben eine Woche

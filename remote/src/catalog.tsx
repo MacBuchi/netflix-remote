@@ -67,6 +67,34 @@ function useCatalog(state: RemoteState, query: Query) {
         if (gen !== generation.current) return;
         setLoading(false);
         void loadLate(gen);
+        void settleSearch(gen);
+    };
+
+    /**
+     * Search results: after navigating, Netflix first shows other titles and replaces them with the
+     * results a moment later. Keep asking until the list stays the same twice in a row.
+     */
+    const settleSearch = async (gen: number) => {
+        const ids = (c: Catalog | null) => c?.rows.flatMap((r) => r.items.map((i) => i.id)).join() ?? '';
+        let current: Catalog | null = null;
+        setCatalog((c) => (current = c));
+        if ((current as Catalog | null)?.page !== 'search') return;
+        let unchanged = 0;
+        for (let attempt = 0; attempt < LATE_RETRIES && unchanged < 2; attempt++) {
+            await new Promise((r) => setTimeout(r, LATE_MS));
+            if (gen !== generation.current) return;
+            const res = await query({ type: 'catalog.get', offset: 0, limit: PAGE_SIZE });
+            if (gen !== generation.current || !res.ok) return;
+            const data = res.data as Catalog;
+            if (data.page !== 'search') return;
+            if (ids(data) === ids(current) || !data.rows.length) {
+                unchanged++;
+                continue;
+            }
+            unchanged = 0;
+            current = data;
+            setCatalog(data);
+        }
     };
 
     /** Adds the billboard and the preview sound state once Netflix has them, without rebuilding the rows. */
@@ -425,7 +453,7 @@ function Empty({ loading, error, onReload, query }: {
 }
 
 /** Shows how the extension sees the Netflix page, so users can send it when the catalog stays empty. */
-function Diagnose({ query }: { query: Query }) {
+export function Diagnose({ query }: { query: Query }) {
     const [report, setReport] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const run = async () => {

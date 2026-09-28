@@ -269,6 +269,7 @@ try {
         await phone.getByRole('heading', { name: 'Derzeit beliebt' }).waitFor();
         const progress = phone.getByRole('button', { name: 'Sternenstaub' }).locator('.progress div');
         assert.equal(await progress.getAttribute('style'), 'width: 70%;');
+        await phone.getByRole('region', { name: 'Empfehlung: Hafenlichter' }).waitFor({ timeout: 10_000 });
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-catalog.png') });
     });
 
@@ -352,7 +353,16 @@ try {
         await phone.getByLabel('Suche').press('Enter');
         await netflix.waitForURL(/\/search\?q=Nachtfalter/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('button', { name: 'Nachtfalter – Serie' }).waitFor({ timeout: 15_000 });
+        // Titles Netflix showed before the results must be gone.
+        await phone.getByRole('button', { name: 'Rotes Licht' }).waitFor({ state: 'detached', timeout: 5_000 });
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-search.png') });
+        // The diagnosis is reachable from the settings on every page.
+        await phone.getByRole('button', { name: 'Einstellungen' }).click();
+        const settings = phone.getByRole('dialog', { name: 'Einstellungen' });
+        await settings.getByRole('button', { name: 'Diagnose anzeigen' }).click();
+        await settings.getByLabel('Diagnose').waitFor();
+        assert.match(await settings.getByLabel('Diagnose').inputValue(), /"page": "search"[\s\S]*Nachtfalter – Serie/);
+        await settings.getByRole('button', { name: 'Schließen' }).click();
     });
 
     await step('catalog: details with episodes, tapping an episode plays it', async () => {
