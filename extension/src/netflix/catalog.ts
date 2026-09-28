@@ -92,11 +92,11 @@ function detailRoot(doc: Document): HTMLElement | null {
 
 // ---- reading ---------------------------------------------------------------------
 
-function readRows(doc: Document): CatalogRow[] {
+function readRows(doc: Document, root: ParentNode = doc): CatalogRow[] {
     const modal = detailRoot(doc);
     const rows = new Map<Element | null, CatalogRow & { seen: Set<string> }>();
 
-    for (const a of doc.querySelectorAll<HTMLAnchorElement>(SEL.titleLinks)) {
+    for (const a of root.querySelectorAll<HTMLAnchorElement>(SEL.titleLinks)) {
         if (modal?.contains(a) || closest(a, SEL.billboard)) continue;
         const id = videoIdFromHref(a.getAttribute('href'));
         if (!id) continue;
@@ -218,7 +218,9 @@ async function setPreviewSound(doc: Document, muted: boolean): Promise<CommandRe
 
 export function readCatalog(doc: Document, offset = 0, limit = 8): Catalog {
     const page = detectPageKind(location, doc);
-    const rows = page === 'profiles' ? [] : readRows(doc).filter((r) => r.items.length);
+    // Search: only the result grid counts, once Netflix has rendered it (before that it shows other rows).
+    const results = page === 'search' ? q(doc, SEL.searchResults) : null;
+    const rows = page === 'profiles' ? [] : readRows(doc, results ?? doc).filter((r) => r.items.length);
     return {
         page,
         rows: rows.slice(offset, offset + limit),
@@ -279,7 +281,14 @@ export function diagnose(doc: Document): Record<string, unknown> {
         location: location.pathname + location.search,
         page: catalog.page,
         titleLinks: links.length,
-        rows: catalog.rows.map((r) => `${r.title || '(ohne Titel)'}: ${r.items.length}`),
+        rows: catalog.rows.map(
+            (r) =>
+                `${r.title || '(ohne Titel)'}: ${r.items.length} – ${r.items
+                    .slice(0, 4)
+                    .map((i) => i.name)
+                    .join(', ')}`,
+        ),
+        searchResults: catalog.page === 'search' ? (q(doc, SEL.searchResults) ? describe(q(doc, SEL.searchResults), 3) : 'nicht gefunden') : undefined,
         profiles: catalog.profiles.map((p) => p.name),
         detail: catalog.detail && { title: catalog.detail.title, episodes: catalog.detail.episodes.length, seasons: catalog.detail.seasons },
         billboard: catalog.billboard && { ...catalog.billboard, img: !!catalog.billboard.img, logo: !!catalog.billboard.logo },
@@ -295,6 +304,7 @@ export function diagnose(doc: Document): Record<string, unknown> {
             previewAudioToggle: count(SEL.previewAudioToggle),
             video: count('video'),
             episode: count(SEL.episode),
+            searchResults: count(SEL.searchResults),
         },
         sampleLinks: links.slice(0, 5).map((a) => ({
             href: a.getAttribute('href')?.slice(0, 60),

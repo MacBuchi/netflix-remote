@@ -31,6 +31,8 @@ export const SEL = {
     rowTitle: ['.row-header-title', '[data-uia="row-title"]', 'h2', 'h3'],
     cardName: ['.fallback-text', '[data-uia="title-card-name"]'],
     progress: ['[class*="progress-completed"]', 'progress'],
+    /** The result grid of the search page; titles elsewhere on that page (suggestions, rows) are not results. */
+    searchResults: ['[data-uia="search-gallery"]', '.search-page .gallery', '.gallery.search', '.galleryLockups', '.search-gallery', '.gallery'],
     /** Hero banner on top of browse pages ("billboard", its trailer plays automatically). */
     billboard: ['.billboard-row', '[data-uia="billboard"]', '.billboard'],
     billboardLogo: ['[data-uia="billboard-title"] img', '.billboard-title img', 'img.title-logo'],

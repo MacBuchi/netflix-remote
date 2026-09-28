@@ -142,7 +142,7 @@ und MQTT-Relay.
 
 | Problem | Lösung |
 |---------|--------|
-| Übersicht bleibt leer | In der Handy-App „Diagnose anzeigen“ → „Kopieren“ und als [Issue](https://github.com/MacBuchi/netflix-remote/issues) melden. Netflix hat dann vermutlich das Seiten-Markup geändert; anzupassen ist `extension/src/netflix/selectors.ts`. |
+| Übersicht leer, Einträge falsch oder unpassend | In der Handy-App Zahnrad → „Hilfe bei Problemen“ → „Diagnose anzeigen“ → „Kopieren“ und als [Issue](https://github.com/MacBuchi/netflix-remote/issues) melden (bei leerer Übersicht steht der Knopf auch direkt dort). Netflix hat dann vermutlich das Seiten-Markup geändert; anzupassen ist `extension/src/netflix/selectors.ts`. |
 | „Netflix-Seite antwortet nicht“ | Netflix-Tab neu laden – nach einem Update der Extension ist das alte Content-Script abgekoppelt. |
 | Handy verbindet sich nicht | Im Popup muss „Direkt: bereit · Relay: bereit“ stehen. Sonst Internetverbindung des PCs prüfen oder unter „Erweitert“ andere Server eintragen. |
 | „Kopplung ungültig“ | Im Popup wurde „Neu koppeln“ gedrückt; QR-Code neu scannen. |

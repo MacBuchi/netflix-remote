@@ -40,7 +40,12 @@
             const row = (title, items) => `<div class="lolomoRow" data-list-context="x"><h2 class="rowHeader"><div class="row-header-title">${title}</div></h2>${items.map(([id, n, p]) => card(id, n, p)).join('')}</div>`;
             if (path.startsWith('/search')) {
                 const q = params.get('q');
-                document.body.innerHTML = `<div class="search-gallery">${card('7001', q + ' – Film')}${card('7002', q + ' – Serie')}</div>`;
+                // Like Netflix after a page load: first other titles, the result grid a moment later.
+                document.body.innerHTML = header + row('Beliebte Suchen', [['81040344', 'Rotes Licht'], ['80057281', 'Sternenstaub']]);
+                setTimeout(() => {
+                    document.body.innerHTML =
+                        header + `<div class="search-page"><div class="gallery search">${card('7001', q + ' – Film')}${card('7002', q + ' – Serie')}</div></div>`;
+                }, 1500);
             } else {
                 const filler = (r) => Array.from({ length: 30 }, (_, i) => [`${60000 + r * 100 + i}`, `Titel ${r}-${i}`]);
                 // Billboard: full-width recommendation with title logo; Netflix plays its trailer here.
