@@ -18,6 +18,7 @@ import type {
 } from '../../../shared/protocol';
 import { SECTION_URLS } from '../../../shared/protocol';
 import { detectPageKind } from './page-kind';
+import { detailsUrl, rememberReturn } from './return-to';
 import { SEL } from './selectors';
 
 const MAX_ITEMS_PER_ROW = 30;
@@ -336,6 +337,7 @@ export async function runCatalogCommand(doc: Document, cmd: CatalogCommand): Pro
             await sleep(1200);
             return { ok: true };
         case 'catalog.play': {
+            rememberReturn(new URL(location.href), sessionStorage);
             // Clicking an existing link keeps Netflix's single-page app warm; fall back to navigation.
             const link = doc.querySelector<HTMLAnchorElement>(`a[href*="/watch/${cmd.id}"]`);
             if (link) link.click();
@@ -343,11 +345,12 @@ export async function runCatalogCommand(doc: Document, cmd: CatalogCommand): Pro
             return { ok: true };
         }
         case 'catalog.open':
-            go(`/browse?jbv=${cmd.id}`);
+            go(detailsUrl(new URL(location.href), cmd.id));
             return { ok: true };
         case 'catalog.episode': {
             const ep = detailRoot(doc) && qa(detailRoot(doc)!, SEL.episode)[cmd.index];
             if (!ep) return { ok: false, error: 'Folge nicht gefunden' };
+            rememberReturn(new URL(location.href), sessionStorage);
             (q(ep, 'a[href*="/watch/"]') ?? ep).click();
             return { ok: true };
         }

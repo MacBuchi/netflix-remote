@@ -368,16 +368,28 @@ try {
     await step('catalog: details with episodes, tapping an episode plays it', async () => {
         await phone.getByRole('button', { name: 'Nachtfalter – Serie' }).click();
         await phone.getByRole('button', { name: 'Details & Folgen' }).click();
-        await netflix.waitForURL(/jbv=7002/, { timeout: 10_000, waitUntil: 'commit' });
+        // The details open over the search results …
+        await netflix.waitForURL(/\/search\?q=Nachtfalter&jbv=7002/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByText('Im Wald verschwindet ein Kind.').waitFor({ timeout: 15_000 });
         assert.equal(await phone.getByText('Allgemeine Beschreibung').count(), 0, 'cookie dialog taken for details');
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-detail.png') });
-        await phone.getByRole('button', { name: /2\. Lügen/ }).click();
+        // … so "Zurück" returns to them.
+        await phone.getByRole('button', { name: 'Zurück', exact: true }).click();
+        await netflix.waitForURL((u) => u.pathname === '/search' && !u.searchParams.has('jbv'), { timeout: 10_000, waitUntil: 'commit' });
+        await phone.getByRole('heading', { name: 'Suchergebnisse' }).waitFor({ timeout: 10_000 });
+        await phone.getByRole('button', { name: 'Nachtfalter – Serie' }).click();
+        await phone.getByRole('button', { name: 'Details & Folgen' }).click();
+        await phone.getByRole('button', { name: /2\. Lügen/ }).click({ timeout: 15_000 });
         await netflix.waitForURL(/\/watch\/90002/, { timeout: 10_000, waitUntil: 'commit' });
     });
 
+    await step('catalog: leaving the player returns to the search results it was started from', async () => {
+        await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click({ timeout: 15_000 });
+        await netflix.waitForURL((u) => u.pathname === '/search' && u.searchParams.get('q') === 'Nachtfalter', { timeout: 10_000, waitUntil: 'commit' });
+        await phone.getByRole('button', { name: 'Nachtfalter – Serie' }).waitFor({ timeout: 15_000 });
+    });
+
     await step('catalog: section chips navigate the PC', async () => {
-        await phone.getByRole('button', { name: 'Zurück zur Übersicht' }).click();
         await phone.getByRole('button', { name: 'Serien', exact: true }).click({ timeout: 15_000 });
         await netflix.waitForURL(/\/browse\/genre\/83/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('heading', { name: 'Serien-Tipps' }).waitFor({ timeout: 15_000 });
