@@ -41,10 +41,11 @@
             if (path.startsWith('/search')) {
                 const q = params.get('q');
                 // Like Netflix after a page load: first other titles, the result grid a moment later.
-                document.body.innerHTML = header + row('Beliebte Suchen', [['81040344', 'Rotes Licht'], ['80057281', 'Sternenstaub']]);
+                document.body.innerHTML =
+                    header + `<div id="search">${row('Beliebte Suchen', [['81040344', 'Rotes Licht'], ['80057281', 'Sternenstaub']])}</div>`;
                 setTimeout(() => {
-                    document.body.innerHTML =
-                        header + `<div class="search-page"><div class="gallery search">${card('7001', q + ' – Film')}${card('7002', q + ' – Serie')}</div></div>`;
+                    document.getElementById('search').innerHTML =
+                        `<div class="search-page"><div class="gallery search">${card('7001', q + ' – Film')}${card('7002', q + ' – Serie')}</div></div>`;
                 }, 1500);
             } else {
                 const filler = (r) => Array.from({ length: 30 }, (_, i) => [`${60000 + r * 100 + i}`, `Titel ${r}-${i}`]);
@@ -64,31 +65,43 @@
                     row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Rotes Licht']]) +
                     [1, 2, 3, 4, 5].map((r) => row(`Reihe ${r}`, filler(r))).join('');
                 setTimeout(() => document.querySelector('.pinning-header').insertAdjacentHTML('afterend', billboard), 2000);
-                if (params.has('jbv')) {
-                    // Netflix's cookie settings are a dialog too; they must never be taken for the details.
-                    document.body.insertAdjacentHTML('beforeend', `
-                        <div id="onetrust-consent-sdk"><div id="onetrust-pc-sdk" class="otPcCenter" role="dialog" aria-label="Datenschutz-Präferenz-Center">
-                            <h3 id="ot-pc-title">Allgemeine Beschreibung</h3>
-                            <p id="ot-pc-desc">Dieses Cookie-Tool wird Ihnen helfen, zu verstehen, wie Cookies im Netflix-Dienst genutzt werden.</p>
-                        </div></div>`);
-                    // The details dialog renders a moment later.
-                    setTimeout(() => document.body.insertAdjacentHTML('beforeend', `
-                        <div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">
-                            <img class="previewModal--player-titleTreatment-logo" alt="Nachtfalter" src="${img('Nachtfalter')}">
-                            <a data-uia="play-button" href="/watch/${params.get('jbv')}">Abspielen</a>
-                            <p class="preview-modal-synopsis">Im Wald verschwindet ein Kind.</p>
-                            <button data-uia="dropdown-toggle">Staffel 1</button>
-                            ${['Geheimnisse', 'Lügen', 'Vergangenheit'].map((t, i) => `
-                                <div class="titleCardList--container episode-item" data-uia="titleCard--container">
-                                    <a href="/watch/9000${i + 1}"><img src="${img('Folge ' + (i + 1))}"></a>
-                                    <div class="titleCard-title_index">${i + 1}</div>
-                                    <div class="titleCard-title_text">${t}</div>
-                                    <p class="titleCard-synopsis">Folge ${i + 1} von Nachtfalter.</p>
-                                </div>`).join('')}
-                        </div>`), 1500);
-                }
             }
         }
+
+        // Details dialog over any list page (browse, genre, search), like Netflix's ?jbv=<id>.
+        if (!path.startsWith('/watch/')) {
+            if (params.has('jbv')) {
+                // Netflix's cookie settings are a dialog too; they must never be taken for the details.
+                document.body.insertAdjacentHTML('beforeend', `
+                    <div id="onetrust-consent-sdk"><div id="onetrust-pc-sdk" class="otPcCenter" role="dialog" aria-label="Datenschutz-Präferenz-Center">
+                        <h3 id="ot-pc-title">Allgemeine Beschreibung</h3>
+                        <p id="ot-pc-desc">Dieses Cookie-Tool wird Ihnen helfen, zu verstehen, wie Cookies im Netflix-Dienst genutzt werden.</p>
+                    </div></div>`);
+                // The details dialog renders a moment later.
+                setTimeout(() => document.body.insertAdjacentHTML('beforeend', `
+                    <div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">
+                        <button data-uia="previewModal-closebtn" aria-label="close" onclick="closeDetails()"></button>
+                        <img class="previewModal--player-titleTreatment-logo" alt="Nachtfalter" src="${img('Nachtfalter')}">
+                        <a data-uia="play-button" href="/watch/${params.get('jbv')}">Abspielen</a>
+                        <p class="preview-modal-synopsis">Im Wald verschwindet ein Kind.</p>
+                        <button data-uia="dropdown-toggle">Staffel 1</button>
+                        ${['Geheimnisse', 'Lügen', 'Vergangenheit'].map((t, i) => `
+                            <div class="titleCardList--container episode-item" data-uia="titleCard--container">
+                                <a href="/watch/9000${i + 1}"><img src="${img('Folge ' + (i + 1))}"></a>
+                                <div class="titleCard-title_index">${i + 1}</div>
+                                <div class="titleCard-title_text">${t}</div>
+                                <p class="titleCard-synopsis">Folge ${i + 1} von Nachtfalter.</p>
+                            </div>`).join('')}
+                    </div>`), 1500);
+            }
+        }
+        // Closing the details takes jbv out of the address, like Netflix does.
+        window.closeDetails = () => {
+            document.querySelector('[data-uia="modal-motion-container-DETAIL_MODAL"]')?.remove();
+            const url = new URL(location.href);
+            url.searchParams.delete('jbv');
+            history.pushState(null, '', url.pathname + url.search);
+        };
 
         const audio = [{ trackId: 'a-de', displayName: 'Deutsch' }, { trackId: 'a-en', displayName: 'English' }];
         const text = [{ trackId: 't-off', displayName: 'Aus', isNoneTrack: true }, { trackId: 't-de', displayName: 'Deutsch' }];

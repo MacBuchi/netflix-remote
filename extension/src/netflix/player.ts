@@ -7,6 +7,7 @@
 // directly: Netflix's player crashes on that, seeking must use player.seek().
 
 import type { CommandResult, PlayerCommand, PlayerState, Track } from '../../../shared/protocol';
+import { takeReturn } from './return-to';
 import { SEL } from './selectors';
 
 interface NfTrack {
@@ -181,6 +182,12 @@ export class PlayerAdapter {
                 case 'player.setRate':
                     return this.setRate(p, v, cmd.rate);
                 case 'player.exit': {
+                    // Started from a search: back to its results, which Netflix's own back button forgets.
+                    const target = takeReturn(this.win.sessionStorage);
+                    if (target) {
+                        this.win.location.assign(target);
+                        return { ok: true };
+                    }
                     const back = first(this.doc, SEL.back);
                     if (back) back.click();
                     else this.win.history.back();
