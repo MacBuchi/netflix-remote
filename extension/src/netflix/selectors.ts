@@ -55,6 +55,10 @@ export const SEL = {
         '.previewModal--container',
         '[role="dialog"]',
     ],
+    /** Cookie consent (OneTrust) and similar dialogs; never a title's details. */
+    consent: '[id^="onetrust"], [class*="onetrust"], [id*="cookie" i], [class*="cookie" i], [aria-label*="cookie" i]',
+    /** What makes a generic dialog a title's details: a way to play it. */
+    detailMarker: 'a[href*="/watch/"], [data-uia="play-button"], [data-uia*="titleCard"]',
     detailTitle: ['[data-uia="previewModal--player-titleTreatment-logo"]', '.previewModal--player-titleTreatment-logo', 'h3', 'h2'],
     detailSynopsis: ['[data-uia="previewModal--synopsis"]', '.preview-modal-synopsis', '.previewModal--text p', 'p'],
     detailPlay: ['[data-uia="play-button"]', 'a[href*="/watch/"]', 'button[data-uia*="play"]'],

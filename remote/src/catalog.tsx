@@ -24,6 +24,9 @@ const PAGE_SIZE = 6;
 /** Netflix renders lazily after navigation; retry a few times while nothing is there yet. */
 const EMPTY_RETRIES = 4;
 const RETRY_MS = 1200;
+/** Netflix builds the billboard and starts its trailer only after the first rows; ask again a few times. */
+const LATE_RETRIES = 8;
+const LATE_MS = 1000;
 
 const SECTIONS: { id: CatalogSection; label: string }[] = [
     { id: 'home', label: 'Start' },
@@ -35,6 +38,11 @@ const SECTIONS: { id: CatalogSection; label: string }[] = [
 
 function isEmpty(c: Catalog) {
     return !c.rows.length && !c.profiles.length && !c.detail?.title && !c.detail?.episodes.length;
+}
+
+/** A details page also shows the rows behind the dialog; it is only complete once the details are there. */
+function isComplete(c: Catalog) {
+    return !isEmpty(c) && (c.page !== 'title' || !!c.detail?.title || !!c.detail?.episodes.length);
 }
 
 function useCatalog(state: RemoteState, query: Query) {
@@ -54,9 +62,29 @@ function useCatalog(state: RemoteState, query: Query) {
             const data = res.ok ? (res.data as Catalog) : null;
             setError(res.ok ? null : (res.error ?? 'Unbekannter Fehler'));
             if (data) setCatalog(data);
-            if (data && !isEmpty(data)) break;
+            if (data && isComplete(data)) break;
         }
-        if (gen === generation.current) setLoading(false);
+        if (gen !== generation.current) return;
+        setLoading(false);
+        void loadLate(gen);
+    };
+
+    /** Adds the billboard and the preview sound state once Netflix has them, without rebuilding the rows. */
+    const loadLate = async (gen: number) => {
+        // `undefined` means an extension that does not report these at all.
+        const missing = (c: Catalog | null) =>
+            !!c && c.page === 'browse' && (c.billboard === null || (c.billboard != null && c.previewMuted === null));
+        let current: Catalog | null = null;
+        setCatalog((c) => (current = c));
+        for (let attempt = 0; attempt < LATE_RETRIES && missing(current); attempt++) {
+            await new Promise((r) => setTimeout(r, LATE_MS));
+            if (gen !== generation.current) return;
+            const res = await query({ type: 'catalog.get', offset: 0, limit: 1 });
+            if (gen !== generation.current || !res.ok) return;
+            const data = res.data as Catalog;
+            if (data.page !== 'browse') return;
+            setCatalog((c) => (current = c && { ...c, billboard: data.billboard, previewMuted: data.previewMuted }));
+        }
     };
 
     // Reload whenever Netflix on the PC shows another page.

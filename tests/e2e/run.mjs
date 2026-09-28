@@ -360,6 +360,7 @@ try {
         await phone.getByRole('button', { name: 'Details & Folgen' }).click();
         await netflix.waitForURL(/jbv=7002/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByText('Im Wald verschwindet ein Kind.').waitFor({ timeout: 15_000 });
+        assert.equal(await phone.getByText('Allgemeine Beschreibung').count(), 0, 'cookie dialog taken for details');
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-detail.png') });
         await phone.getByRole('button', { name: /2\. Lügen/ }).click();
         await netflix.waitForURL(/\/watch\/90002/, { timeout: 10_000, waitUntil: 'commit' });
@@ -370,6 +371,8 @@ try {
         await phone.getByRole('button', { name: 'Serien', exact: true }).click({ timeout: 15_000 });
         await netflix.waitForURL(/\/browse\/genre\/83/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByRole('heading', { name: 'Serien-Tipps' }).waitFor({ timeout: 15_000 });
+        // Netflix builds the billboard after the rows; the phone adds it without "load more".
+        await phone.getByRole('region', { name: 'Empfehlung: Hafenlichter' }).waitFor({ timeout: 10_000 });
         // The chip of the section Netflix shows is highlighted, and only that one.
         await phone.locator('.chip[aria-current="page"]', { hasText: 'Serien' }).waitFor({ timeout: 10_000 });
         assert.equal(await phone.locator('.chip[aria-current="page"]').count(), 1);
