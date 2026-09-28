@@ -74,8 +74,20 @@ function progressOf(root: Element | null): number | null {
     return Number.isFinite(width) ? Math.min(1, Math.max(0, width / 100)) : null;
 }
 
+/**
+ * The title details dialog. Other dialogs (cookie settings!) must never count: with the generic
+ * `[role="dialog"]` fallback they would show up on the phone as a title while the real details load.
+ */
 function detailRoot(doc: Document): HTMLElement | null {
-    return q(doc, SEL.detail);
+    for (const s of SEL.detail) {
+        const generic = s === '[role="dialog"]';
+        for (const el of doc.querySelectorAll<HTMLElement>(s)) {
+            if (el.closest(SEL.consent)) continue;
+            if (generic && !el.querySelector(SEL.detailMarker)) continue;
+            return el;
+        }
+    }
+    return null;
 }
 
 // ---- reading ---------------------------------------------------------------------

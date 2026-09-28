@@ -113,6 +113,28 @@ describe('readCatalog', () => {
         expect(readCatalog(document).billboard).toBeNull();
     });
 
+    it('never takes the cookie settings dialog for title details', () => {
+        const COOKIES = `<div id="onetrust-pc-sdk" class="otPcCenter" role="dialog" aria-label="Datenschutz-Präferenz-Center">
+            <h3 id="ot-pc-title">Allgemeine Beschreibung</h3>
+            <p id="ot-pc-desc">Dieses Cookie-Tool wird Ihnen helfen, zu verstehen, wie Cookies im Netflix-Dienst genutzt werden.</p>
+            <button>Alle akzeptieren</button></div>`;
+        history.replaceState(null, '', '/browse?jbv=80100172');
+        document.body.innerHTML = BROWSE + COOKIES;
+        expect(readCatalog(document).detail).toBeNull();
+
+        // Once Netflix renders the real details, those count – with the cookie dialog still in the page.
+        document.body.innerHTML = BROWSE + COOKIES + MODAL;
+        expect(readCatalog(document).detail).toMatchObject({ title: 'Dark', synopsis: 'Ein Kind verschwindet.' });
+    });
+
+    it('accepts a generic dialog as details only when it offers to play a title', () => {
+        history.replaceState(null, '', '/browse?jbv=80100172');
+        document.body.innerHTML = BROWSE + '<div role="dialog"><h3>Hinweis</h3><p>Irgendetwas</p></div>';
+        expect(readCatalog(document).detail).toBeNull();
+        document.body.innerHTML = BROWSE + '<div role="dialog"><h3>Dark</h3><p>Ein Kind verschwindet.</p><a href="/watch/80100172">Abspielen</a></div>';
+        expect(readCatalog(document).detail).toMatchObject({ title: 'Dark' });
+    });
+
     it('reports and switches the trailer preview sound with Netflix\'s own button', async () => {
         document.body.innerHTML = `<div class="billboard-row"><video></video>
             <button data-uia="audio-toggle-unmuted" aria-label="Ton aus"></button></div>` + BROWSE;

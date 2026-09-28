@@ -43,22 +43,31 @@
                 document.body.innerHTML = `<div class="search-gallery">${card('7001', q + ' – Film')}${card('7002', q + ' – Serie')}</div>`;
             } else {
                 const filler = (r) => Array.from({ length: 30 }, (_, i) => [`${60000 + r * 100 + i}`, `Titel ${r}-${i}`]);
-                document.body.innerHTML =
-                    header +
-                    // Billboard: full-width recommendation with title logo; Netflix plays its trailer here.
-                    `<div class="billboard-row"><div class="billboard billboard-pane">
+                // Billboard: full-width recommendation with title logo; Netflix plays its trailer here.
+                // Like on Netflix it appears only after the first rows.
+                const billboard = `<div class="billboard-row"><div class="billboard billboard-pane">
                         <div class="hero-image-wrapper"><img class="hero static-image" src="${img('Hafenlichter', '80025678')}&hero=1"></div>
                         <video class="billboard-motion"></video>
                         <button class="global-supplemental-audio-toggle" data-uia="audio-toggle-unmuted" aria-label="Ton aus"></button>
                         <div class="billboard-title"><img class="title-logo" alt="Hafenlichter" src="${img('Hafenlichter', '80025678')}&logo=1"></div>
                         <div class="billboard-description"><div class="synopsis">Eine Hafenstadt, drei Familien und ein Geheimnis, das alles verändert.</div></div>
                         <div class="billboard-links"><a class="playLink" href="/watch/80025678?trackId=1"><button data-uia="play-button">Abspielen</button></a><button data-uia="billboard-more-info">Weitere Infos</button></div>
-                    </div></div>` +
+                    </div></div>`;
+                document.body.innerHTML =
+                    header +
                     row('Weiterschauen', [['80100172', 'Nachtfalter', 35], ['80057281', 'Sternenstaub', 70]]) +
                     row(path.includes('genre') ? 'Serien-Tipps' : 'Derzeit beliebt', [['81040344', 'Rotes Licht']]) +
                     [1, 2, 3, 4, 5].map((r) => row(`Reihe ${r}`, filler(r))).join('');
+                setTimeout(() => document.querySelector('.pinning-header').insertAdjacentHTML('afterend', billboard), 2000);
                 if (params.has('jbv')) {
+                    // Netflix's cookie settings are a dialog too; they must never be taken for the details.
                     document.body.insertAdjacentHTML('beforeend', `
+                        <div id="onetrust-consent-sdk"><div id="onetrust-pc-sdk" class="otPcCenter" role="dialog" aria-label="Datenschutz-Präferenz-Center">
+                            <h3 id="ot-pc-title">Allgemeine Beschreibung</h3>
+                            <p id="ot-pc-desc">Dieses Cookie-Tool wird Ihnen helfen, zu verstehen, wie Cookies im Netflix-Dienst genutzt werden.</p>
+                        </div></div>`);
+                    // The details dialog renders a moment later.
+                    setTimeout(() => document.body.insertAdjacentHTML('beforeend', `
                         <div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">
                             <img class="previewModal--player-titleTreatment-logo" alt="Nachtfalter" src="${img('Nachtfalter')}">
                             <a data-uia="play-button" href="/watch/${params.get('jbv')}">Abspielen</a>
@@ -71,7 +80,7 @@
                                     <div class="titleCard-title_text">${t}</div>
                                     <p class="titleCard-synopsis">Folge ${i + 1} von Nachtfalter.</p>
                                 </div>`).join('')}
-                        </div>`);
+                        </div>`), 1500);
                 }
             }
         }
@@ -97,13 +106,13 @@
             setPlaybackRate: (r) => (fake.rate = r),
         };
         // Trailer preview sound toggle, like Netflix's: flips the preview video and its own data-uia.
-        document.querySelectorAll('[data-uia^="audio-toggle"]').forEach((b) =>
-            b.addEventListener('click', () => {
-                const v = b.parentElement.querySelector('video');
-                v.muted = !v.muted;
-                b.dataset.uia = v.muted ? 'audio-toggle-muted' : 'audio-toggle-unmuted';
-            }),
-        );
+        document.addEventListener('click', (e) => {
+            const b = e.target.closest?.('[data-uia^="audio-toggle"]');
+            if (!b) return;
+            const v = b.parentElement.querySelector('video');
+            v.muted = !v.muted;
+            b.dataset.uia = v.muted ? 'audio-toggle-muted' : 'audio-toggle-unmuted';
+        });
         const isWatch = path.startsWith('/watch/');
         window.netflix = { appContext: { state: { playerApp: { getAPI: () => ({ videoPlayer: {
             getAllPlayerSessionIds: () => (isWatch ? ['watch-1'] : []),
