@@ -93,6 +93,8 @@ export interface Episode {
 export interface TitleDetail {
     id: string | null;
     title: string;
+    /** Release year from the metadata line (for series Netflix shows the latest season's). */
+    year?: number | null;
     synopsis: string;
     img: string | null;
     seasons: string[];

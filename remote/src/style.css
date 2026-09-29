@@ -156,6 +156,7 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 32px; }
 .rating b { font-size: 11px; letter-spacing: 0.02em; color: var(--muted); }
 .rating.imdb b { color: #f5c518; }
 .ratings-note { margin: 0; font-size: 13px; color: var(--muted); text-align: left; padding: 0; }
+.ratings-match { align-self: center; font-size: 12px; color: var(--muted); }
 .hero-ratings { margin: 0 16px; }
 .sound-btn { flex: none; width: 48px; height: 48px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--fg); display: grid; place-items: center; }
 .sound-btn.overlay { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; background: rgb(0 0 0 / 55%); border: 1px solid rgb(255 255 255 / 35%); }

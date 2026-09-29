@@ -62,10 +62,17 @@ export const SEL = {
     /** What makes a generic dialog a title's details: a way to play it. */
     detailMarker: 'a[href*="/watch/"], [data-uia="play-button"], [data-uia*="titleCard"]',
     detailTitle: ['[data-uia="previewModal--player-titleTreatment-logo"]', '.previewModal--player-titleTreatment-logo', 'h3', 'h2'],
+    /** Release year in the details' metadata line ("2019 · 2 Staffeln"). */
+    detailYear: ['.previewModal--detailsMetadata .year', '[data-uia="videoMetadata--container"] .year', '.videoMetadata--container .year', '.year'],
     detailSynopsis: ['[data-uia="previewModal--synopsis"]', '.preview-modal-synopsis', '.previewModal--text p', 'p'],
     detailPlay: ['[data-uia="play-button"]', 'a[href*="/watch/"]', 'button[data-uia*="play"]'],
     detailClose: ['[data-uia="previewModal-closebtn"]', '.previewModal-close', 'button[aria-label*="lose"]', 'button[aria-label*="chließen"]'],
-    episode: ['[data-uia="titleCard--container"]', '.titleCardList--container', '.episode-item'],
+    /** The season's episode list; the details also hold "more like this" and trailers as title cards. */
+    episodeList: ['[data-uia="episode-selector"]', '.episodeSelector', '.episodeSelector-container'],
+    episode: ['.titleCardList--container.episode-item', '[data-uia="titleCard--container"]', '.titleCardList--container', '.episode-item'],
+    /** Title cards that are suggestions or trailers, never episodes. */
+    notEpisode:
+        '.more-like-this-item, .moreLikeThis--wrapper, .moreLikeThis--container, [data-uia*="moreLikeThis" i], .trailersAndMore--wrapper, .trailersAndMore--container, [data-uia*="trailers" i]',
     episodeIndex: ['.titleCard-title_index', '[data-uia="titleCard-title_index"]'],
     episodeTitle: ['.titleCard-title_text', '[data-uia="titleCard-title_text"]', 'h3', 'strong'],
     episodeSynopsis: ['.titleCard-synopsis', '[data-uia="titleCard-synopsis"]', 'p'],

@@ -43,9 +43,9 @@ function posterSvg(url) {
 }
 // Stand-in for OMDb: accepts only the key "test-key" and knows some of the fake titles.
 const OMDB_TITLES = {
-    Sternenstaub: { imdbID: 'tt9000001', imdbRating: '8.1', Metascore: '81', Ratings: [{ Source: 'Rotten Tomatoes', Value: '94%' }] },
-    Hafenlichter: { imdbID: 'tt9000002', imdbRating: '7.9', Ratings: [{ Source: 'Rotten Tomatoes', Value: '88%' }] },
-    Nachtfalter: { imdbID: 'tt9000003', imdbRating: '8.7', Ratings: [] },
+    Sternenstaub: { Title: 'Stardust', Year: '2019', imdbID: 'tt9000001', imdbRating: '8.1', Metascore: '81', Ratings: [{ Source: 'Rotten Tomatoes', Value: '94%' }] },
+    Hafenlichter: { Title: 'Harbour Lights', Year: '2021', imdbID: 'tt9000002', imdbRating: '7.9', Ratings: [{ Source: 'Rotten Tomatoes', Value: '88%' }] },
+    Nachtfalter: { Title: 'Moth', Year: '2019–', imdbID: 'tt9000003', imdbRating: '8.7', Ratings: [] },
 };
 const omdb = (route) => {
     const p = new URL(route.request().url()).searchParams;
@@ -60,15 +60,24 @@ const omdb = (route) => {
     return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
 };
 
-// Stand-in for Wikidata: knows the IMDb id of the billboard title only (Netflix id → IMDb id).
+// Stand-in for Wikidata: the billboard title by Netflix id (P1874 → IMDb id), others by their German name.
 const WIKIDATA_IDS = { 80025678: 'tt9000002' };
+const WIKIDATA_NAMES = {
+    Sternenstaub: [{ id: 'tt9000001', year: 2019, series: false }],
+    // Two works share the name: the details' year (a series started 2019, latest season 2021) decides.
+    Nachtfalter: [{ id: 'tt9000009', year: 1996, series: false }, { id: 'tt9000003', year: 2019, series: true }],
+};
 const wikidata = (route) => {
-    const nf = new URL(route.request().url()).searchParams.get('query')?.match(/P1874 "(\d+)"/)?.[1];
-    const imdb = WIKIDATA_IDS[nf];
+    const query = new URL(route.request().url()).searchParams.get('query') ?? '';
+    const nf = query.match(/P1874 "(\d+)"/)?.[1];
+    const name = query.match(/mwapi:search "([^"]*)"/)?.[1];
+    const bindings = nf
+        ? WIKIDATA_IDS[nf] ? [{ imdb: { value: WIKIDATA_IDS[nf] } }] : []
+        : (WIKIDATA_NAMES[name] ?? []).map((c) => ({ id: { value: c.id }, year: { value: String(c.year) }, series: { value: String(c.series) } }));
     return route.fulfill({
         contentType: 'application/sparql-results+json',
         headers: { 'access-control-allow-origin': '*' },
-        body: JSON.stringify({ results: { bindings: imdb ? [{ imdb: { value: imdb } }] : [] } }),
+        body: JSON.stringify({ results: { bindings } }),
     });
 };
 
@@ -306,6 +315,8 @@ try {
         assert.equal(await sheet.getByRole('link', { name: 'IMDb 8,1 von 10' }).getAttribute('href'), 'https://www.imdb.com/title/tt9000001/');
         await sheet.getByLabel('Rotten Tomatoes 94%').waitFor();
         await sheet.getByLabel('Metacritic 81 von 100').waitFor();
+        // Found by its German name in Wikidata; the sheet names the work the numbers belong to.
+        await sheet.getByText('Stardust (2019)').waitFor();
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-ratings.png') });
         await sheet.getByRole('button', { name: 'Schließen' }).click();
         // The billboard is found via Wikidata (Netflix id → IMDb id) and shows what is known (no Metacritic).
@@ -372,6 +383,12 @@ try {
         await netflix.waitForURL(/\/search\?q=Nachtfalter&jbv=7002/, { timeout: 10_000, waitUntil: 'commit' });
         await phone.getByText('Im Wald verschwindet ein Kind.').waitFor({ timeout: 15_000 });
         assert.equal(await phone.getByText('Allgemeine Beschreibung').count(), 0, 'cookie dialog taken for details');
+        // Only the season's episodes, not the suggestions below them.
+        await phone.getByRole('button', { name: /3\. Vergangenheit/ }).waitFor({ timeout: 10_000 });
+        assert.equal(await phone.locator('.episodes li').count(), 3, 'suggestions listed as episodes');
+        // "Nachtfalter" names two works; the year in the details picks the series.
+        await phone.getByRole('link', { name: 'IMDb 8,7 von 10' }).waitFor({ timeout: 10_000 });
+        await phone.getByText('Moth (2019–)').waitFor();
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-detail.png') });
         // … so "Zurück" returns to them.
         await phone.getByRole('button', { name: 'Zurück', exact: true }).click();

@@ -53,7 +53,7 @@
             <a href="https://help.netflix.com/legal/privacy">Datenschutzbestimmungen von Netflix</a>.</li>
             <li><strong>Bewertungen (optional):</strong> Nur wenn du in den Einstellungen einen eigenen OMDb-Schlüssel
             einträgst, schlägt das Handy die Titel nach, die du öffnest: zuerst bei
-            <a href="https://www.wikidata.org/">Wikidata</a> die IMDb-Nummer zur Netflix-Nummer des Titels, dann bei
+            <a href="https://www.wikidata.org/">Wikidata</a> die IMDb-Nummer zur Netflix-Nummer oder zum Namen des Titels, dann bei
             <a href="https://www.omdbapi.com/">OMDb</a> die Bewertungen (notfalls über den Titelnamen). Beide Dienste
             sehen dabei deine IP-Adresse und die jeweiligen Titel, OMDb zusätzlich deinen Schlüssel. Schlüssel und
             Ergebnisse bleiben auf dem Handy gespeichert (Ergebnisse bis zu einer Woche).</li>
@@ -69,7 +69,7 @@
             <tr><td>TURN-Server von PeerJS (<code>*.turn.peerjs.com</code>)</td><td>Weiterleitung, falls keine Direktverbindung möglich ist</td><td>IP-Adressen; die Daten sind per WebRTC (DTLS) verschlüsselt</td></tr>
             <tr><td>MQTT-Relay HiveMQ (<code>broker.hivemq.com</code>)</td><td>Ausweichweg in Netzen, die Direktverbindungen sperren</td><td>IP-Adressen und verschlüsselte Nachrichten (AES-GCM mit dem Kopplungsschlüssel); keine Inhalte</td></tr>
             <tr><td>OMDb (<code>www.omdbapi.com</code>), nur mit eigenem Schlüssel</td><td>Bewertungen von IMDb, Rotten Tomatoes und Metacritic</td><td>IP-Adresse, dein OMDb-Schlüssel, Namen der geöffneten Titel</td></tr>
-            <tr><td>Wikidata (<code>query.wikidata.org</code>), nur mit eigenem OMDb-Schlüssel</td><td>Zuordnung Netflix-Nummer → IMDb-Nummer</td><td>IP-Adresse, Netflix-Nummern der geöffneten Titel; siehe <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Datenschutz der Wikimedia Foundation</a></td></tr>
+            <tr><td>Wikidata (<code>query.wikidata.org</code>), nur mit eigenem OMDb-Schlüssel</td><td>Zuordnung Netflix-Nummer bzw. Titelname → IMDb-Nummer</td><td>IP-Adresse, Netflix-Nummern und Namen der geöffneten Titel; siehe <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Datenschutz der Wikimedia Foundation</a></td></tr>
             <tr><td>GitHub Pages</td><td>Ausliefern der Handy-App</td><td>IP-Adresse und übliche Server-Protokolldaten, siehe <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a></td></tr>
         </table>
         <p>Alle Server lassen sich in der Extension unter „Erweitert“ durch eigene ersetzen.</p>
@@ -107,7 +107,7 @@
             QR code link, which browsers never send to a web server.</li>
             <li>The phone loads title images directly from Netflix; Netflix's privacy statement applies.</li>
             <li>Ratings (optional): only if you enter your own OMDb key in the settings, the phone asks OMDb
-            (<code>www.omdbapi.com</code>) for the titles you open, after looking up their IMDb id by Netflix id at
+            (<code>www.omdbapi.com</code>) for the titles you open, after looking up their IMDb id by Netflix id or name at
             Wikidata (<code>query.wikidata.org</code>). Both see your IP address and those titles, OMDb also your key.
             Key and results (up to a week) stay on the phone.</li>
         </ul>
