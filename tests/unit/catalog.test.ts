@@ -29,6 +29,7 @@ const MODAL = `
         <img class="previewModal--player-titleTreatment-logo" alt="Dark" src="https://occ-0.nflxso.net/logo.png">
         <a data-uia="play-button" href="/watch/80100172">Abspielen</a>
         <button data-uia="previewModal-closebtn" aria-label="close"></button>
+        <div class="previewModal--detailsMetadata"><div class="videoMetadata--second-line"><span class="year">2020</span> 3 Staffeln</div></div>
         <p class="preview-modal-synopsis">Ein Kind verschwindet.</p>
         <button data-uia="dropdown-toggle">Staffel 1</button>
         <div class="titleCardList--container episode-item" data-uia="titleCard--container">
@@ -41,6 +42,12 @@ const MODAL = `
             <div class="titleCard-title_index">2</div>
             <div class="titleCard-title_text">Lügen</div>
         </div>
+        <div class="moreLikeThis--wrapper"><h3>Mehr Titel wie dieser</h3><div class="moreLikeThis--container">
+            <div class="titleCard--container more-like-this-item" data-uia="titleCard--container">
+                <a href="/watch/80244088"><img src="https://occ-0.nflxso.net/mlt.jpg"></a>
+                <div class="titleCard-title_text">1899</div>
+            </div>
+        </div></div>
     </div>`;
 
 beforeEach(() => {
@@ -200,6 +207,7 @@ describe('readCatalog', () => {
             id: '80100172',
             title: 'Dark',
             synopsis: 'Ein Kind verschwindet.',
+            year: 2020,
             seasons: ['Staffel 1'],
             season: 0,
         });

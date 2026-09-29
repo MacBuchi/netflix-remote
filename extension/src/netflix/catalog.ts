@@ -155,12 +155,23 @@ function readProfiles(doc: Document): Profile[] {
     }));
 }
 
+/** Episodes of the shown season, without the suggestions and trailers further down the details. */
+function episodeCards(modal: HTMLElement): HTMLElement[] {
+    const scope = q(modal, SEL.episodeList) ?? modal;
+    return qa(scope, SEL.episode).filter((el) => !el.closest(SEL.notEpisode));
+}
+
+function yearOf(modal: HTMLElement): number | null {
+    const y = Number(text(q(modal, SEL.detailYear)).match(/\b(19|20)\d{2}\b/)?.[0]);
+    return y || null;
+}
+
 function readDetail(doc: Document): TitleDetail | null {
     const modal = detailRoot(doc);
     if (!modal) return null;
     const titleEl = q(modal, SEL.detailTitle);
     const title = titleEl?.getAttribute('alt') || titleEl?.querySelector('img')?.getAttribute('alt') || text(titleEl);
-    const episodes: Episode[] = qa(modal, SEL.episode).map((el, index) => ({
+    const episodes: Episode[] = episodeCards(modal).map((el, index) => ({
         index,
         label: text(q(el, SEL.episodeIndex)) || String(index + 1),
         title: text(q(el, SEL.episodeTitle)),
@@ -183,6 +194,7 @@ function readDetail(doc: Document): TitleDetail | null {
     return {
         id,
         title,
+        year: yearOf(modal),
         synopsis: text(q(modal, SEL.detailSynopsis)),
         img: imageOf(modal),
         seasons,
@@ -348,7 +360,8 @@ export async function runCatalogCommand(doc: Document, cmd: CatalogCommand): Pro
             go(detailsUrl(new URL(location.href), cmd.id));
             return { ok: true };
         case 'catalog.episode': {
-            const ep = detailRoot(doc) && qa(detailRoot(doc)!, SEL.episode)[cmd.index];
+            const root = detailRoot(doc);
+            const ep = root && episodeCards(root)[cmd.index];
             if (!ep) return { ok: false, error: 'Folge nicht gefunden' };
             rememberReturn(new URL(location.href), sessionStorage);
             (q(ep, 'a[href*="/watch/"]') ?? ep).click();

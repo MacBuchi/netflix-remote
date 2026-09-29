@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { extractOmdbKey, fetchRatings, parseOmdb, setOmdbKey, testOmdbKey } from '../../remote/src/ratings';
+import { extractOmdbKey, fetchRatings, parseOmdb, pickCandidate, setOmdbKey, testOmdbKey, type Candidate } from '../../remote/src/ratings';
 
 const FULL = {
     Response: 'True',
+    Title: 'Inception',
+    Year: '2010',
     imdbID: 'tt1375666',
     imdbRating: '8.8',
     Metascore: '74',
@@ -16,12 +18,12 @@ const FULL = {
 
 describe('parseOmdb', () => {
     it('reads IMDb, Rotten Tomatoes and Metacritic', () => {
-        expect(parseOmdb(FULL)).toEqual({ imdbId: 'tt1375666', imdb: '8.8', rottenTomatoes: '87%', metacritic: '74' });
+        expect(parseOmdb(FULL)).toEqual({ imdbId: 'tt1375666', imdb: '8.8', rottenTomatoes: '87%', metacritic: '74', match: 'Inception (2010)' });
     });
 
     it('keeps only what is available (series usually have just IMDb)', () => {
         const series = { Response: 'True', imdbID: 'tt5753856', imdbRating: '8.7', Metascore: 'N/A', Ratings: [{ Source: 'Internet Movie Database', Value: '8.7/10' }] };
-        expect(parseOmdb(series)).toEqual({ imdbId: 'tt5753856', imdb: '8.7', rottenTomatoes: null, metacritic: null });
+        expect(parseOmdb(series)).toEqual({ imdbId: 'tt5753856', imdb: '8.7', rottenTomatoes: null, metacritic: null, match: null });
     });
 
     it('treats unknown titles and titles without any rating as not found', () => {
@@ -49,78 +51,137 @@ describe('extractOmdbKey', () => {
     });
 });
 
+const film = (imdb: string, year: number | null, extra: Partial<Candidate> = {}): Candidate => ({ imdb, year, series: false, netflix: null, ...extra });
+
+describe('pickCandidate', () => {
+    // "Die Unschuldigen" is the German name of several films.
+    const innocents = [film('tt4370784', 2016), film('tt0093261', 1987), film('tt8100954', 2019)];
+
+    it('takes the work Wikidata knows by the Netflix id', () => {
+        expect(pickCandidate([...innocents, film('tt1', 2021, { netflix: '81' })], '81', {})).toMatchObject({ imdb: 'tt1' });
+    });
+
+    it('tells works of the same name apart by year, and admits when it cannot', () => {
+        expect(pickCandidate(innocents, null, { year: 2019 })).toMatchObject({ imdb: 'tt8100954' });
+        expect(pickCandidate(innocents, null, { year: 2016, kind: 'movie' })).toMatchObject({ imdb: 'tt4370784' });
+        expect(pickCandidate(innocents, null, {})).toBe('ambiguous');
+        expect(pickCandidate(innocents, null, { year: 2005 })).toBeNull();
+        expect(pickCandidate([film('tt4370784', 2016)], null, {})).toMatchObject({ imdb: 'tt4370784' });
+    });
+
+    it('matches series by start, since Netflix shows the latest season year', () => {
+        const dark = [film('tt5753856', 2017, { series: true }), film('tt0000001', 2020)];
+        expect(pickCandidate(dark, null, { year: 2020, kind: 'series' })).toMatchObject({ imdb: 'tt5753856' });
+        expect(pickCandidate(dark, null, { kind: 'series' })).toMatchObject({ imdb: 'tt5753856' });
+        expect(pickCandidate(dark, null, { year: 2016, kind: 'series' })).toBeNull();
+    });
+});
+
 describe('fetchRatings', () => {
     const fetchMock = vi.fn();
+    /** Wikidata answers: by Netflix id (P1874) and by name (entity search). */
+    let byNetflixId: any[] = [];
+    let byName: any[] = [];
+    let omdbBody: any = FULL;
+    const sparqlOf = (url: string) => new URL(url).searchParams.get('query') ?? '';
     beforeEach(() => {
         localStorage.clear();
-        fetchMock.mockReset().mockResolvedValue({ json: async () => FULL });
+        byNetflixId = [];
+        byName = [];
+        omdbBody = FULL;
+        fetchMock.mockReset().mockImplementation(async (url: string) => ({
+            json: async () =>
+                url.startsWith('https://query.wikidata.org/')
+                    ? { results: { bindings: sparqlOf(url).includes('EntitySearch') ? byName : byNetflixId } }
+                    : omdbBody,
+        }));
         vi.stubGlobal('fetch', fetchMock);
     });
     afterEach(() => {
         vi.unstubAllGlobals();
         setOmdbKey(null);
     });
+    const omdbCalls = () => fetchMock.mock.calls.map(([u]) => new URL(u)).filter((u) => u.origin === 'https://www.omdbapi.com');
+    const named = (imdb: string, year: number, series = false) => ({
+        id: { value: imdb },
+        year: { value: String(year) },
+        series: { value: String(series) },
+    });
 
     it('asks nothing without a key', async () => {
-        expect(await fetchRatings('Inception')).toBeNull();
+        expect((await fetchRatings('Inception')).ratings).toBeNull();
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('queries by title and type, then answers from the cache', async () => {
-        setOmdbKey(' abc123 ');
-        expect((await fetchRatings('Inception', 'movie'))?.imdb).toBe('8.8');
-        const url = new URL(fetchMock.mock.calls[0][0]);
-        expect(url.origin).toBe('https://www.omdbapi.com');
-        expect(Object.fromEntries(url.searchParams)).toEqual({ apikey: 'abc123', t: 'Inception', type: 'movie' });
-
-        expect((await fetchRatings('inception', 'movie'))?.imdb).toBe('8.8');
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-    });
-
     it('function test looks up a known film with the given key', async () => {
-        fetchMock.mockResolvedValue({ json: async () => ({ ...FULL, Title: 'The Shawshank Redemption', imdbRating: '9.3' }) });
+        omdbBody = { ...FULL, Title: 'The Shawshank Redemption', imdbRating: '9.3' };
         await expect(testOmdbKey(' k3y ')).resolves.toEqual({
             title: 'The Shawshank Redemption',
             ratings: expect.objectContaining({ imdb: '9.3' }),
         });
         expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get('apikey')).toBe('k3y');
 
-        fetchMock.mockResolvedValue({ json: async () => ({ Response: 'False', Error: 'Invalid API key!' }) });
+        omdbBody = { Response: 'False', Error: 'Invalid API key!' };
         await expect(testOmdbKey('bad')).rejects.toBe('key');
     });
 
-    it('maps the Netflix id to the IMDb id via Wikidata, so localized titles are found', async () => {
-        setOmdbKey('abc123');
-        fetchMock.mockImplementation(async (url: string) =>
-            url.startsWith('https://query.wikidata.org/')
-                ? { json: async () => ({ results: { bindings: [{ imdb: { value: 'tt6468322' } }] } }) }
-                : { json: async () => FULL },
-        );
-        expect((await fetchRatings('Haus des Geldes', 'series', '80192098'))?.imdb).toBe('8.8');
-        const wikidata = new URL(fetchMock.mock.calls[0][0]);
-        expect(wikidata.searchParams.get('query')).toContain('wdt:P1874 "80192098"');
-        expect(Object.fromEntries(new URL(fetchMock.mock.calls[1][0]).searchParams)).toEqual({ apikey: 'abc123', i: 'tt6468322' });
+    it('maps the Netflix id to the IMDb id via Wikidata, then answers from the cache', async () => {
+        setOmdbKey(' abc123 ');
+        byNetflixId = [{ imdb: { value: 'tt6468322' } }];
+        expect((await fetchRatings('Haus des Geldes', '80192098', { kind: 'series' })).ratings?.imdb).toBe('8.8');
+        expect(sparqlOf(fetchMock.mock.calls[0][0])).toContain('wdt:P1874 "80192098"');
+        expect(Object.fromEntries(omdbCalls()[0].searchParams)).toEqual({ apikey: 'abc123', i: 'tt6468322' });
+
+        // The details (with the year) reuse the answer: card and details show the same numbers.
+        expect((await fetchRatings('Haus des Geldes', '80192098', { kind: 'series', year: 2021 })).ratings?.imdb).toBe('8.8');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('falls back to the title when Wikidata does not know the id', async () => {
+    it('finds localized titles by name in Wikidata and looks them up by IMDb id', async () => {
         setOmdbKey('abc123');
-        fetchMock.mockImplementation(async (url: string) =>
-            url.startsWith('https://query.wikidata.org/') ? { json: async () => ({ results: { bindings: [] } }) } : { json: async () => FULL },
-        );
-        expect((await fetchRatings('Inception', undefined, '70131314'))?.imdb).toBe('8.8');
-        expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get('t')).toBe('Inception');
+        byName = [named('tt4370784', 2016), named('tt8100954', 2019)];
+        const card = await fetchRatings('Die Unschuldigen', '81000001');
+        expect(card).toEqual({ ratings: null, ambiguous: true });
+        expect(omdbCalls()).toHaveLength(0);
+        expect(sparqlOf(fetchMock.mock.calls[1][0])).toContain('mwapi:search "Die Unschuldigen"');
+
+        // The details know the year and decide; the guess-free card answer does not stand in the way.
+        const details = await fetchRatings('Die Unschuldigen', '81000001', { kind: 'movie', year: 2019 });
+        expect(details.ratings?.imdb).toBe('8.8');
+        expect(omdbCalls()[0].searchParams.get('i')).toBe('tt8100954');
+    });
+
+    it('uses OMDb title search only with a year to check the answer', async () => {
+        setOmdbKey('abc123');
+        expect((await fetchRatings('Inception', '70131314')).ratings).toBeNull();
+        expect(omdbCalls()).toHaveLength(0);
+
+        expect((await fetchRatings('Inception', '70131314', { kind: 'movie', year: 2010 })).ratings?.imdb).toBe('8.8');
+        expect(Object.fromEntries(omdbCalls()[0].searchParams)).toEqual({ apikey: 'abc123', t: 'Inception', type: 'movie', y: '2010' });
+
+        localStorage.clear();
+        expect((await fetchRatings('Inception', '70131315', { kind: 'movie', year: 2020 })).ratings).toBeNull();
+    });
+
+    it('asks once for the same title at the same time', async () => {
+        setOmdbKey('abc123');
+        byNetflixId = [{ imdb: { value: 'tt6468322' } }];
+        const [a, b] = await Promise.all([fetchRatings('Haus des Geldes', '80192098'), fetchRatings('Haus des Geldes', '80192098')]);
+        expect(a).toBe(b);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it('caches misses too, but not errors', async () => {
         setOmdbKey('abc123');
-        fetchMock.mockResolvedValue({ json: async () => ({ Response: 'False', Error: 'Movie not found!' }) });
-        expect(await fetchRatings('Unbekannt')).toBeNull();
-        expect(await fetchRatings('Unbekannt')).toBeNull();
-        expect(fetchMock).toHaveBeenCalledTimes(1);
+        omdbBody = { Response: 'False', Error: 'Movie not found!' };
+        byNetflixId = [{ imdb: { value: 'tt1' } }];
+        expect((await fetchRatings('Unbekannt', '1')).ratings).toBeNull();
+        expect((await fetchRatings('Unbekannt', '1')).ratings).toBeNull();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
 
-        fetchMock.mockResolvedValue({ json: async () => ({ Response: 'False', Error: 'Request limit reached!' }) });
-        await expect(fetchRatings('Anderer Titel')).rejects.toBe('limit');
-        await expect(fetchRatings('Anderer Titel')).rejects.toBe('limit');
-        expect(fetchMock).toHaveBeenCalledTimes(3);
+        omdbBody = { Response: 'False', Error: 'Request limit reached!' };
+        await expect(fetchRatings('Anderer Titel', '2')).rejects.toBe('limit');
+        await expect(fetchRatings('Anderer Titel', '2')).rejects.toBe('limit');
+        expect(fetchMock).toHaveBeenCalledTimes(6);
     });
 });

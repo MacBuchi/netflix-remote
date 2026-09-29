@@ -373,6 +373,7 @@ function DetailView({ detail, muted, act }: {
                 title={detail.title}
                 id={detail.id}
                 kind={detail.seasons.length || detail.episodes.length > 1 ? 'series' : undefined}
+                year={detail.year}
                 hint
                 showMissing
             />

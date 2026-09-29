@@ -102,8 +102,11 @@ Die Schritte und der Link zu OMDb stehen auch direkt in den Einstellungen der Ap
 
 Die App fragt nur beim Öffnen eines Titels (Titel-Blatt, Details, Empfehlung) und merkt sich die Antworten
 eine Woche. Weil Netflix deutsche Titel zeigt, die bei IMDb oft anders heißen, ordnet die App zuerst über
-[Wikidata](https://www.wikidata.org/) die Netflix-Nummer der IMDb-Nummer zu; nur wenn Wikidata den Titel nicht
-kennt, sucht sie per Name. Findet sich nichts, steht dort „Keine Bewertungen gefunden“.
+[Wikidata](https://www.wikidata.org/) die Netflix-Nummer der IMDb-Nummer zu. Kennt Wikidata die Nummer nicht, sucht
+die App den deutschen Namen unter den Bezeichnungen der Filme und Serien bei Wikidata; tragen mehrere Werke diesen
+Namen, entscheiden Film oder Serie und das Erscheinungsjahr aus den Details. OMDbs eigene Titelsuche kommt nur
+noch mit Jahr zum Zug. Unter den Bewertungen steht, welchem Werk sie gehören („The Innocents (2016)“), so fällt
+eine falsche Zuordnung sofort auf. Findet sich nichts, steht dort „Keine Bewertungen gefunden“.
 
 <br clear="right">
 

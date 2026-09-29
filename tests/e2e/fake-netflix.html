@@ -83,6 +83,7 @@
                         <button data-uia="previewModal-closebtn" aria-label="close" onclick="closeDetails()"></button>
                         <img class="previewModal--player-titleTreatment-logo" alt="Nachtfalter" src="${img('Nachtfalter')}">
                         <a data-uia="play-button" href="/watch/${params.get('jbv')}">Abspielen</a>
+                        <div class="previewModal--detailsMetadata"><span class="year">2021</span> 2 Staffeln</div>
                         <p class="preview-modal-synopsis">Im Wald verschwindet ein Kind.</p>
                         <button data-uia="dropdown-toggle">Staffel 1</button>
                         ${['Geheimnisse', 'Lügen', 'Vergangenheit'].map((t, i) => `
@@ -92,6 +93,14 @@
                                 <div class="titleCard-title_text">${t}</div>
                                 <p class="titleCard-synopsis">Folge ${i + 1} von Nachtfalter.</p>
                             </div>`).join('')}
+                        <div class="moreLikeThis--wrapper"><h3>Mehr Titel wie dieser</h3><div class="moreLikeThis--container">
+                            ${[['80000101', 'Sternenstaub'], ['81040344', 'Rotes Licht']].map(([id, t]) => `
+                                <div class="titleCard--container more-like-this-item" data-uia="titleCard--container">
+                                    <a href="/watch/${id}"><img src="${img(t)}"></a>
+                                    <div class="titleCard-title_text">${t}</div>
+                                    <p class="titleCard-synopsis">Ein Vorschlag.</p>
+                                </div>`).join('')}
+                        </div></div>
                     </div>`), 1500);
             }
         }
