@@ -1,7 +1,8 @@
 #!/bin/bash
 # Couch Remote: updates this folder to the latest release on GitHub.
 # Linux: run it (bash update.sh, or double-click if the file manager offers "Ausführen").
-# Mac: double-click update.command, which runs this script.
+# Mac: in the Terminal type "bash ", drag this file into the window, press Enter. Or double-click
+# update.command, which runs this script; the first time macOS asks for approval in System Settings.
 # Chrome notices the new files on its own and reloads the extension.
 # Wrapped in { … exit; } so bash reads the whole script before running it: the update replaces this file.
 {
@@ -15,6 +16,13 @@ for tool in curl unzip; do
     command -v "$tool" >/dev/null || fail "$tool fehlt – bitte installieren (z. B. sudo apt install $tool)."
 done
 grep -q '"name": "Couch Remote"' manifest.json 2>/dev/null || fail "Dieses Skript gehört in den Ordner der Extension (neben manifest.json)."
+# macOS marks files from a downloaded ZIP as "from the internet" and blocks double-clicking unsigned
+# scripts. Once this ran (from the terminal or after "Dennoch öffnen"), later updates need no approval.
+trust_scripts() {
+    [ "$(uname)" = Darwin ] && xattr -d com.apple.quarantine update.command update.sh 2>/dev/null || true
+}
+trust_scripts
+
 installed=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' manifest.json | head -1)
 
 echo "Couch Remote – installiert: $installed"
@@ -40,6 +48,7 @@ else
     done
     cp "$tmp/new/manifest.json" manifest.json
     chmod +x update.sh update.command 2>/dev/null || true
+    trust_scripts
     echo "Fertig: Version $latest. Chrome lädt Couch Remote innerhalb einer Minute neu (sofort beim Öffnen des Popups)."
 fi
 echo
