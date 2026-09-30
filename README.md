@@ -94,6 +94,10 @@ Selbst bauen statt ZIP: `npm install && npm run build:ext`, dann den Ordner `ext
 3. Im Chrome-Menü auf dem Handy „Zum Startbildschirm hinzufügen“ – ab dann startet sie wie eine App.
 
 Unter „Name dieses Rechners“ lässt sich der Rechner benennen, das hilft bei mehreren gekoppelten Rechnern.
+Die Handy-App listet die gekoppelten Rechner in den Einstellungen mit Browser, System und Kopplungsdatum
+(„Chrome · macOS · gekoppelt am 30.09.2026“); dort lässt sich wechseln und entfernen. Wird die Extension neu
+installiert, bekommt der Rechner eine neue Kennung: Die neue Kopplung ersetzt dann ältere Einträge mit gleichem
+Namen auf demselben Browser und System, statt sie zu verdoppeln.
 „Neu koppeln“ erzeugt einen neuen Schlüssel; alle bisher gekoppelten Handys müssen dann neu scannen.
 
 Oben rechts zeigt die Handy-App, wie sie verbunden ist: „Direkt“ (WebRTC) oder „Relay“.

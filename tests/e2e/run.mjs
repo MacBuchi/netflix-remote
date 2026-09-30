@@ -196,7 +196,7 @@ try {
     const netflix = await pc.newPage();
     await netflix.goto('https://www.netflix.com/watch/80100172');
 
-    const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker, r: config.relay })}`;
+    const pairingUrl = `http://localhost:${WEB_PORT}/#${new URLSearchParams({ pc: config.peerId, k: config.key, n: config.pcName, b: config.broker, r: config.relay, d: 'Chrome · macOS' })}`;
     const phoneCtx = await phoneBrowser.newContext({ viewport: { width: 400, height: 860 }, isMobile: true, hasTouch: true });
     await phoneCtx.route('https://*.nflxso.net/**', cdn);
     await phoneCtx.route('https://www.omdbapi.com/**', omdb);
@@ -205,11 +205,27 @@ try {
     watched.phone = phone;
 
     await step('phone pairs via QR link and ends up on the direct WebRTC link', async () => {
+        // Earlier pairings of this PC (reinstalled extension: new id, same name) are replaced.
+        await phone.goto(`http://localhost:${WEB_PORT}/`);
+        await phone.evaluate(() => {
+            const old = (peerId, name) => ({ peerId, key: 'ffffffffffffffffffffffffffffffff', name, broker: '', relay: '' });
+            localStorage.setItem('nfr.pairings', JSON.stringify([old('nfr-oldtestmac1', 'Test-Mac'), old('nfr-oldtestmac2', 'Test-Mac')]));
+        });
         await phone.goto(pairingUrl);
         await phone.locator('.dot.connected').waitFor({ timeout: 20_000 });
         await phone.locator('.via', { hasText: 'Direkt' }).waitFor({ timeout: 20_000 });
         assert.equal(await phone.locator('.pc-name').textContent(), 'Test-Mac');
         assert.equal(new URL(phone.url()).hash, '', 'secret removed from address bar');
+    });
+
+    await step('settings list the paired PCs with browser, system and date, without duplicates', async () => {
+        await phone.getByRole('button', { name: 'Einstellungen' }).click();
+        const list = phone.getByRole('dialog', { name: 'Einstellungen' }).locator('.pc-list li');
+        await list.first().waitFor();
+        assert.deepEqual(await list.locator('strong').allTextContents(), ['Test-Mac']);
+        const today = new Date().toLocaleDateString('de-DE');
+        await list.first().getByText(`Chrome · macOS · gekoppelt am ${today}`).waitFor();
+        await phone.getByRole('dialog', { name: 'Einstellungen' }).getByRole('button', { name: 'Schließen' }).click();
     });
 
     await step('player state reaches the phone', async () => {

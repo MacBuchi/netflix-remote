@@ -327,6 +327,10 @@ export interface Pairing {
     broker: string;
     /** MQTT relay URL for networks that block direct connections; empty means the default relay. */
     relay: string;
+    /** Browser and system of the PC, "Chrome · macOS"; tells PCs of the same name apart. */
+    device?: string;
+    /** When the phone scanned the QR code (ms since 1970); set by the phone. */
+    pairedAt?: number;
 }
 
 /** Link encoded in the QR code. The secret lives in the hash so it never reaches the web server. */
@@ -334,6 +338,7 @@ export function buildPairingUrl(remoteUrl: string, p: Pairing): string {
     const params = new URLSearchParams({ pc: p.peerId, k: p.key, n: p.name });
     if (p.broker) params.set('b', p.broker);
     if (p.relay) params.set('r', p.relay);
+    if (p.device) params.set('d', p.device);
     return `${remoteUrl.split('#')[0]}#${params.toString()}`;
 }
 
@@ -342,12 +347,14 @@ export function parsePairingHash(hash: string): Pairing | null {
     const peerId = params.get('pc');
     const key = params.get('k');
     if (!peerId || !key || !/^[A-Za-z0-9_-]{8,64}$/.test(peerId) || key.length < 16) return null;
+    const device = params.get('d')?.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60);
     return {
         peerId,
         key,
         name: params.get('n') || 'Netflix-PC',
         broker: params.get('b') || '',
         relay: params.get('r') || '',
+        ...(device ? { device } : {}),
     };
 }
 

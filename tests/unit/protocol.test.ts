@@ -81,6 +81,8 @@ describe('pairing link', () => {
     it('carries a custom broker', () => {
         const url = buildPairingUrl('https://x/', { ...pairing, broker: 'wss://peer.example.com:9000/app' });
         expect(parsePairingHash(new URL(url).hash)?.broker).toBe('wss://peer.example.com:9000/app');
+        const withDevice = buildPairingUrl('https://x/', { ...pairing, device: 'Opera · macOS' });
+        expect(parsePairingHash(new URL(withDevice).hash)?.device).toBe('Opera · macOS');
     });
 
     it('rejects incomplete or malformed links', () => {

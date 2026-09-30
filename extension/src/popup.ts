@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { buildPairingUrl, type ExtensionUpdate } from '../../shared/protocol';
+import { describeDevice } from './device';
 import { DEFAULT_REMOTE_URL, type Config, type OffscreenMsg, type OffscreenStatus, type SwMsg } from './messages';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -23,6 +24,7 @@ async function render(config: Config) {
         name: config.pcName,
         broker: config.broker,
         relay: config.relay,
+        device: describeDevice(),
     });
     await QRCode.toCanvas($('qr'), pairingUrl, { width: 216, margin: 0, errorCorrectionLevel: 'M' });
     setField('name', config.pcName);
