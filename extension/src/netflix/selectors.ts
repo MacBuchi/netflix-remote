@@ -67,10 +67,8 @@ export const SEL = {
     detailSynopsis: ['[data-uia="previewModal--synopsis"]', '.preview-modal-synopsis', '.previewModal--text p', 'p'],
     detailPlay: ['[data-uia="play-button"]', 'a[href*="/watch/"]', 'button[data-uia*="play"]'],
     detailClose: ['[data-uia="previewModal-closebtn"]', '.previewModal-close', 'button[aria-label*="lose"]', 'button[aria-label*="chließen"]'],
-    /** The season's episode list; the details also hold "more like this" and trailers as title cards. */
-    episodeList: ['[data-uia="episode-selector"]', '.episodeSelector', '.episodeSelector-container'],
     episode: ['.titleCardList--container.episode-item', '[data-uia="titleCard--container"]', '.titleCardList--container', '.episode-item'],
-    /** Title cards that are suggestions or trailers, never episodes. */
+    /** Blocks of suggestions or trailers in the details; their title cards are never episodes. */
     notEpisode:
         '.more-like-this-item, .moreLikeThis--wrapper, .moreLikeThis--container, [data-uia*="moreLikeThis" i], .trailersAndMore--wrapper, .trailersAndMore--container, [data-uia*="trailers" i]',
     episodeIndex: ['.titleCard-title_index', '[data-uia="titleCard-title_index"]'],

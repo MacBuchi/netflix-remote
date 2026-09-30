@@ -217,6 +217,33 @@ describe('readCatalog', () => {
     });
 });
 
+describe('episodes in the details', () => {
+    const card = (n: string | null, title: string, cls = 'titleCardList--container episode-item') => `
+        <div class="${cls}" data-uia="titleCard--container">
+            <a href="/watch/9${title.length}"><img src="https://occ-0.nflxso.net/${title}.jpg"></a>
+            ${n ? `<div class="titleCard-title_index">${n}</div>` : ''}
+            <div class="titleCard-title_text">${title}</div>
+        </div>`;
+    const details = (body: string) => {
+        history.replaceState(null, '', '/browse?jbv=80100172');
+        document.body.innerHTML = `<div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">
+            <a data-uia="play-button" href="/watch/80100172">Abspielen</a>${body}</div>`;
+        return readCatalog(document).detail!.episodes.map((e) => e.title);
+    };
+
+    it('takes the numbered cards, wherever Netflix puts them', () => {
+        // Even inside a wrapper that looks like a suggestions block, numbered cards are episodes.
+        expect(details(`<div data-uia="moreLikeThis-and-episodes">${card('1', 'Eins')}${card('2', 'Zwei')}</div>${card(null, 'Vorschlag', 'titleCard--container more-like-this-item')}`)).toEqual([
+            'Eins',
+            'Zwei',
+        ]);
+    });
+
+    it('without episode numbers, leaves out the suggestions block', () => {
+        expect(details(`${card(null, 'Film')}<div class="moreLikeThis--container">${card(null, 'Vorschlag', 'titleCard--container more-like-this-item')}</div>`)).toEqual(['Film']);
+    });
+});
+
 describe('runCatalogCommand', () => {
     it('plays through an existing link', async () => {
         document.body.innerHTML = BROWSE;
