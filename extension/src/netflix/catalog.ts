@@ -156,9 +156,29 @@ function readProfiles(doc: Document): Profile[] {
 }
 
 /** Episodes of the shown season, without the suggestions and trailers further down the details. */
+function titleCards(modal: HTMLElement): HTMLElement[] {
+    const all = new Set<HTMLElement>();
+    for (const s of SEL.episode) modal.querySelectorAll<HTMLElement>(s).forEach((el) => all.add(el));
+    // Outermost cards only: some selectors match a card and its inner wrapper.
+    return [...all].filter((el) => ![...all].some((other) => other !== el && other.contains(el)));
+}
+
+const hasEpisodeNumber = (card: HTMLElement) => /^\d{1,4}$/.test(text(q(card, SEL.episodeIndex)));
+/** Inside a suggestions or trailers block of these details (not somewhere above them). */
+const inSuggestions = (card: HTMLElement, modal: HTMLElement) => {
+    const block = card.closest(SEL.notEpisode);
+    return !!block && modal.contains(block);
+};
+
+/**
+ * Episodes of the shown season, without the suggestions and trailers further down the details:
+ * those use the same title cards, but only episodes carry an episode number.
+ */
 function episodeCards(modal: HTMLElement): HTMLElement[] {
-    const scope = q(modal, SEL.episodeList) ?? modal;
-    return qa(scope, SEL.episode).filter((el) => !el.closest(SEL.notEpisode));
+    const cards = titleCards(modal);
+    const numbered = cards.filter(hasEpisodeNumber);
+    if (numbered.length) return numbered;
+    return cards.filter((el) => !inSuggestions(el, modal));
 }
 
 function yearOf(modal: HTMLElement): number | null {
@@ -303,7 +323,23 @@ export function diagnose(doc: Document): Record<string, unknown> {
         ),
         searchResults: catalog.page === 'search' ? (q(doc, SEL.searchResults) ? describe(q(doc, SEL.searchResults), 3) : 'nicht gefunden') : undefined,
         profiles: catalog.profiles.map((p) => p.name),
-        detail: catalog.detail && { title: catalog.detail.title, episodes: catalog.detail.episodes.length, seasons: catalog.detail.seasons },
+        detail: catalog.detail && { title: catalog.detail.title, year: catalog.detail.year, episodes: catalog.detail.episodes.length, seasons: catalog.detail.seasons },
+        /** Title cards in the details: which count as episodes, and where they sit. */
+        detailCards: (() => {
+            const modal = detailRoot(doc);
+            if (!modal) return undefined;
+            const cards = titleCards(modal);
+            return {
+                cards: cards.length,
+                numbered: cards.filter(hasEpisodeNumber).length,
+                inSuggestions: cards.filter((el) => inSuggestions(el, modal)).length,
+                samples: [cards[0], cards[cards.length - 1]].filter(Boolean).map((el) => ({
+                    number: text(q(el, SEL.episodeIndex)).slice(0, 10),
+                    title: text(q(el, SEL.episodeTitle)).slice(0, 40),
+                    path: describe(el, 5),
+                })),
+            };
+        })(),
         billboard: catalog.billboard && { ...catalog.billboard, img: !!catalog.billboard.img, logo: !!catalog.billboard.logo },
         selectors: {
             row: count(SEL.row),
