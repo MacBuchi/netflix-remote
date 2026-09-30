@@ -5,6 +5,7 @@ import {
     type CatalogCommand,
     type Command,
     type CommandResult,
+    type ExtensionUpdate,
     type Pairing,
     type PageKind,
     type PlayerState,
@@ -135,6 +136,7 @@ function App() {
     return (
         <div class="app">
             <Header pairings={pairings} active={pairing} snap={snap} onSwitch={switchPc} onSettings={() => setSettings(true)} />
+            {snap?.status === 'connected' && snap.state?.update && <UpdateBanner update={snap.state.update} />}
             <main>
                 {snap?.status === 'connected' ? (
                     <Connected state={snap.state} send={send} query={query} />
@@ -179,6 +181,40 @@ function Header({ pairings, active, snap, onSwitch, onSettings }: {
                 <Icon name="settings" size={22} />
             </button>
         </header>
+    );
+}
+
+const UPDATE_DISMISSED = 'nfr.updateDismissed';
+
+/** A newer extension release for this PC; hidden per version once dismissed. */
+function UpdateBanner({ update }: { update: ExtensionUpdate }) {
+    const [dismissed, setDismissed] = useState(() => {
+        try {
+            return localStorage.getItem(UPDATE_DISMISSED);
+        } catch {
+            return null;
+        }
+    });
+    if (dismissed === update.latest) return null;
+    const dismiss = () => {
+        try {
+            localStorage.setItem(UPDATE_DISMISSED, update.latest);
+        } catch {
+            /* private mode: hidden for this visit */
+        }
+        setDismissed(update.latest);
+    };
+    return (
+        <div class="update-banner" role="status">
+            <p>
+                <strong>Extension-Update {update.latest}</strong> für diesen PC (installiert: {update.current}). Am PC im
+                Ordner der Extension das Update-Skript starten – Details im Popup der Extension.{' '}
+                <a href={update.page} target="_blank" rel="noopener noreferrer">Neuerungen</a>
+            </p>
+            <button class="header-btn" aria-label="Hinweis ausblenden" onClick={dismiss}>
+                <Icon name="close" size={20} />
+            </button>
+        </div>
     );
 }
 

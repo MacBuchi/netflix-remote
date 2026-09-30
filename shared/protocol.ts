@@ -158,6 +158,17 @@ export interface RemoteState {
     location: string;
     fullscreen: boolean;
     player: PlayerState | null;
+    /** A newer extension release on GitHub; absent when up to date. */
+    update?: ExtensionUpdate | null;
+}
+
+export interface ExtensionUpdate {
+    /** Installed version. */
+    current: string;
+    latest: string;
+    /** Release page and ZIP download on GitHub. */
+    page: string;
+    zip: string | null;
 }
 
 // Phone -> PC

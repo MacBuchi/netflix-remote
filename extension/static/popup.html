@@ -24,10 +24,27 @@
         .small { font-size: 12px; }
         .legal { margin-top: 16px; color: var(--muted); }
         .legal a { color: #a896ff; }
+        .update { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #1f1a3a; border: 1px solid var(--accent); }
+        .update p { margin: 6px 0 0; }
+        .update code { color: var(--fg); }
+        .update .row { margin-top: 10px; }
+        a.button { flex: 1; padding: 8px; border-radius: 6px; background: #333; color: var(--fg); text-align: center; text-decoration: none; }
+        a.button.primary { background: var(--accent); }
     </style>
 </head>
 <body>
     <h1><span id="dot" class="dot"></span><span>Couch Remote</span></h1>
+    <div id="update" class="update" hidden>
+        <strong id="update-title">Neue Version verfügbar</strong>
+        <p class="small">Im Ordner der Extension das Update-Skript starten: <code>update.command</code> (Mac),
+            <code>update.cmd</code> (Windows) oder <code>update.sh</code> (Linux). Couch Remote lädt sich danach
+            von selbst neu.</p>
+        <p class="small">Ohne Skript: ZIP laden und über den bisherigen Ordner entpacken.</p>
+        <div class="row">
+            <a id="update-zip" class="button primary" target="_blank" rel="noopener">ZIP herunterladen</a>
+            <a id="update-notes" class="button" target="_blank" rel="noopener">Neuerungen</a>
+        </div>
+    </div>
     <canvas id="qr" width="232" height="232"></canvas>
     <p>QR-Code mit der Handy-Kamera scannen. Die Kopplung bleibt gespeichert; das Handy verbindet sich danach automatisch.</p>
     <p id="status">Verbinde …</p>
@@ -54,7 +71,7 @@
     </details>
     <p class="small legal">
         <a href="https://macbuchi.github.io/netflix-remote/privacy.html" target="_blank" rel="noopener">Datenschutz</a> ·
-        Unabhängiges Projekt, nicht mit Netflix verbunden.
+        Unabhängiges Projekt, nicht mit Netflix verbunden. <span id="version"></span>
     </p>
     <script src="popup.js"></script>
 </body>

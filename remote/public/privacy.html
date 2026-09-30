@@ -70,6 +70,7 @@
             <tr><td>MQTT-Relay HiveMQ (<code>broker.hivemq.com</code>)</td><td>Ausweichweg in Netzen, die Direktverbindungen sperren</td><td>IP-Adressen und verschlüsselte Nachrichten (AES-GCM mit dem Kopplungsschlüssel); keine Inhalte</td></tr>
             <tr><td>OMDb (<code>www.omdbapi.com</code>), nur mit eigenem Schlüssel</td><td>Bewertungen von IMDb, Rotten Tomatoes und Metacritic</td><td>IP-Adresse, dein OMDb-Schlüssel, Namen der geöffneten Titel</td></tr>
             <tr><td>Wikidata (<code>query.wikidata.org</code>), nur mit eigenem OMDb-Schlüssel</td><td>Zuordnung Netflix-Nummer bzw. Titelname → IMDb-Nummer</td><td>IP-Adresse, Netflix-Nummern und Namen der geöffneten Titel; siehe <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Datenschutz der Wikimedia Foundation</a></td></tr>
+            <tr><td>GitHub (<code>api.github.com</code>)</td><td>Die Extension fragt etwa zweimal am Tag nach einer neuen Version</td><td>IP-Adresse des PCs, siehe <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a></td></tr>
             <tr><td>GitHub Pages</td><td>Ausliefern der Handy-App</td><td>IP-Adresse und übliche Server-Protokolldaten, siehe <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a></td></tr>
         </table>
         <p>Alle Server lassen sich in der Extension unter „Erweitert“ durch eigene ersetzen.</p>
@@ -116,8 +117,8 @@
         <p>To connect phone and computer without an own server, Couch Remote uses public services that technically
         see the devices' IP addresses but no content: the PeerJS server (<code>0.peerjs.com</code>, connection setup),
         Google's STUN server (address discovery), PeerJS TURN servers (fallback forwarding, WebRTC-encrypted), the HiveMQ
-        public MQTT broker (fallback relay, messages AES-GCM encrypted with the pairing key) and GitHub Pages (hosting
-        the phone app). All servers can be replaced under “Erweitert” (advanced) in the extension.</p>
+        public MQTT broker (fallback relay, messages AES-GCM encrypted with the pairing key), GitHub Pages (hosting
+        the phone app) and the GitHub API (the extension checks about twice a day for a new version). All servers can be replaced under “Erweitert” (advanced) in the extension.</p>
 
         <h2>Contact</h2>
         <p>Please open an issue on <a href="https://github.com/MacBuchi/netflix-remote/issues">github.com/MacBuchi/netflix-remote</a>.</p>
