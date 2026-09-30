@@ -62,6 +62,8 @@ export const SEL = {
     /** What makes a generic dialog a title's details: a way to play it. */
     detailMarker: 'a[href*="/watch/"], [data-uia="play-button"], [data-uia*="titleCard"]',
     detailTitle: ['[data-uia="previewModal--player-titleTreatment-logo"]', '.previewModal--player-titleTreatment-logo', 'h3', 'h2'],
+    /** The details' metadata line ("2019 · 2 Staffeln · HD"). */
+    detailMeta: ['.previewModal--detailsMetadata', '[data-uia="videoMetadata--container"]', '.videoMetadata--container'],
     /** Release year in the details' metadata line ("2019 · 2 Staffeln"). */
     detailYear: ['.previewModal--detailsMetadata .year', '[data-uia="videoMetadata--container"] .year', '.videoMetadata--container .year', '.year'],
     detailSynopsis: ['[data-uia="previewModal--synopsis"]', '.preview-modal-synopsis', '.previewModal--text p', 'p'],

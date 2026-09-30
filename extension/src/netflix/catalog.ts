@@ -186,6 +186,31 @@ function yearOf(modal: HTMLElement): number | null {
     return y || null;
 }
 
+/**
+ * Seasons of a series. Netflix's season picker is a button whose menu entries only exist while it is
+ * open, so without them the count comes from the metadata line ("3 Staffeln") and the labels follow
+ * the button's ("Staffel 1" → "Staffel 1" … "Staffel 3").
+ */
+function readSeasons(doc: Document, modal: HTMLElement): { seasons: string[]; season: number } {
+    const toggle = q(modal, SEL.seasonToggle);
+    if (!toggle) return { seasons: [], season: 0 };
+    if (toggle instanceof HTMLSelectElement) return { seasons: Array.from(toggle.options, (o) => text(o)), season: toggle.selectedIndex };
+    const current = text(toggle);
+    const open = qa(doc, SEL.seasonOption).map((el) => text(el)).filter(Boolean);
+    if (open.length > 1) return { seasons: open, season: Math.max(0, open.findIndex((o) => current && o.startsWith(current))) };
+    const count = Number(text(q(modal, SEL.detailMeta) ?? modal).match(SEASON_COUNT)?.[1]);
+    const label = current.match(/^(.*?)(\d+)\s*$/);
+    if (count > 1 && count <= 100 && label) {
+        return {
+            seasons: Array.from({ length: count }, (_, i) => `${label[1]}${i + 1}`),
+            season: Math.min(count - 1, Math.max(0, Number(label[2]) - 1)),
+        };
+    }
+    return { seasons: current ? [current] : [], season: 0 };
+}
+
+const SEASON_COUNT = /(\d+)\s*(Staffeln|Seasons|Teile|Parts|Temporadas|Saisons|Stagioni)/i;
+
 function readDetail(doc: Document): TitleDetail | null {
     const modal = detailRoot(doc);
     if (!modal) return null;
@@ -199,15 +224,7 @@ function readDetail(doc: Document): TitleDetail | null {
         img: imageOf(el),
         progress: progressOf(el),
     }));
-    const toggle = q(modal, SEL.seasonToggle);
-    let seasons: string[] = [];
-    let season = 0;
-    if (toggle instanceof HTMLSelectElement) {
-        seasons = Array.from(toggle.options, (o) => text(o));
-        season = toggle.selectedIndex;
-    } else if (toggle) {
-        seasons = [text(toggle)];
-    }
+    const { seasons, season } = readSeasons(doc, modal);
     const id =
         videoIdFromHref(location.search) ??
         videoIdFromHref(q<HTMLAnchorElement>(modal, 'a[href*="/watch/"]')?.getAttribute('href') ?? null);
@@ -324,6 +341,17 @@ export function diagnose(doc: Document): Record<string, unknown> {
         searchResults: catalog.page === 'search' ? (q(doc, SEL.searchResults) ? describe(q(doc, SEL.searchResults), 3) : 'nicht gefunden') : undefined,
         profiles: catalog.profiles.map((p) => p.name),
         detail: catalog.detail && { title: catalog.detail.title, year: catalog.detail.year, episodes: catalog.detail.episodes.length, seasons: catalog.detail.seasons },
+        /** How the season picker looks, to follow Netflix when it changes. */
+        seasonPicker: (() => {
+            const modal = detailRoot(doc);
+            const toggle = modal && q(modal, SEL.seasonToggle);
+            if (!modal || !toggle) return undefined;
+            return {
+                toggle: `${text(toggle).slice(0, 30)} – ${describe(toggle, 3)}`,
+                meta: text(q(modal, SEL.detailMeta)).slice(0, 80) || 'nicht gefunden',
+                openOptions: qa(doc, SEL.seasonOption).length,
+            };
+        })(),
         /** Title cards in the details: which count as episodes, and where they sit. */
         detailCards: (() => {
             const modal = detailRoot(doc);
