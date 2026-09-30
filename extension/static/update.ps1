@@ -20,12 +20,17 @@ $installed = $manifest.version
 Write-Host "Couch Remote - installiert: $installed"
 Write-Host 'Suche die neueste Version auf GitHub ...'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# github.com/.../releases/latest redirects to .../tag/v<version>; unlike the API it has no hourly limit.
 try {
-    $release = Invoke-RestMethod -UseBasicParsing -Headers @{ Accept = 'application/vnd.github+json' } "https://api.github.com/repos/$repo/releases/latest"
+    $request = [Net.WebRequest]::Create("https://github.com/$repo/releases/latest")
+    $request.AllowAutoRedirect = $false
+    $response = $request.GetResponse()
+    $location = $response.Headers['Location']
+    $response.Close()
 } catch { Fail 'GitHub nicht erreichbar.' }
-$latest = $release.tag_name -replace '^v', ''
-$zip = ($release.assets | Where-Object { $_.browser_download_url -like 'https://github.com/*.zip' } | Select-Object -First 1).browser_download_url
-if (-not $latest -or -not $zip) { Fail 'Keine Version zum Herunterladen gefunden.' }
+if ($location -notmatch '/releases/tag/v?([0-9][0-9.]*)$') { Fail 'Keine Version zum Herunterladen gefunden.' }
+$latest = $Matches[1]
+$zip = "https://github.com/$repo/releases/download/v$latest/couch-remote-v$latest.zip"
 
 if ($latest -eq $installed) {
     Write-Host 'Schon aktuell.'

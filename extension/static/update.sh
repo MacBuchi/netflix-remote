@@ -19,10 +19,11 @@ installed=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' manifest.json | head -1)
 
 echo "Couch Remote – installiert: $installed"
 echo "Suche die neueste Version auf GitHub …"
-release=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$REPO/releases/latest") || fail "GitHub nicht erreichbar."
-latest=$(printf '%s' "$release" | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -1)
-zip=$(printf '%s' "$release" | grep -o '"browser_download_url": *"https://github.com/[^"]*\.zip"' | head -1 | sed 's/.*"\(https[^"]*\)"/\1/')
-[ -n "$latest" ] && [ -n "$zip" ] || fail "Keine Version zum Herunterladen gefunden."
+# github.com/…/releases/latest redirects to …/tag/v<version>; unlike the API it has no hourly limit.
+page=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest") || fail "GitHub nicht erreichbar."
+latest=$(printf '%s' "$page" | sed -n 's|.*/releases/tag/v\{0,1\}\([0-9][0-9.]*\)$|\1|p')
+[ -n "$latest" ] || fail "Keine Version zum Herunterladen gefunden."
+zip="https://github.com/$REPO/releases/download/v$latest/couch-remote-v$latest.zip"
 
 if [ "$latest" = "$installed" ]; then
     echo "Schon aktuell."
