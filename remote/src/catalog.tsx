@@ -68,6 +68,39 @@ function useCatalog(state: RemoteState, query: Query) {
         setLoading(false);
         void loadLate(gen);
         void settleSearch(gen);
+        void settleDetail(gen);
+    };
+
+    /**
+     * Details: Netflix shows title and synopsis first and fills in the episodes (and seasons) a moment
+     * later. Keep asking until episodes are there and stay the same twice in a row; a film has none, so
+     * for it this only runs out the retries.
+     */
+    const settleDetail = async (gen: number) => {
+        const signature = (c: Catalog | null) => {
+            const d = c?.detail;
+            return d ? [d.title, d.year, d.seasons.join('|'), d.season, d.episodes.map((e) => `${e.label}${e.title}${e.img}`).join('|')].join('#') : '';
+        };
+        let current: Catalog | null = null;
+        setCatalog((c) => (current = c));
+        if ((current as Catalog | null)?.page !== 'title') return;
+        let unchanged = 0;
+        for (let attempt = 0; attempt < LATE_RETRIES; attempt++) {
+            if (unchanged >= 2 && (current as Catalog | null)?.detail?.episodes.length) return;
+            await new Promise((r) => setTimeout(r, LATE_MS));
+            if (gen !== generation.current) return;
+            const res = await query({ type: 'catalog.get', offset: 0, limit: PAGE_SIZE });
+            if (gen !== generation.current || !res.ok) return;
+            const data = res.data as Catalog;
+            if (data.page !== 'title') return;
+            if (signature(data) === signature(current) || !data.detail) {
+                unchanged++;
+                continue;
+            }
+            unchanged = 0;
+            current = data;
+            setCatalog(data);
+        }
     };
 
     /**
