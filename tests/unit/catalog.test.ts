@@ -208,7 +208,7 @@ describe('readCatalog', () => {
             title: 'Dark',
             synopsis: 'Ein Kind verschwindet.',
             year: 2020,
-            seasons: ['Staffel 1'],
+            seasons: ['Staffel 1', 'Staffel 2', 'Staffel 3'],
             season: 0,
         });
         expect(c.detail!.episodes.map((e) => `${e.label}. ${e.title}`)).toEqual(['1. Geheimnisse', '2. Lügen']);
@@ -241,6 +241,34 @@ describe('episodes in the details', () => {
 
     it('without episode numbers, leaves out the suggestions block', () => {
         expect(details(`${card(null, 'Film')}<div class="moreLikeThis--container">${card(null, 'Vorschlag', 'titleCard--container more-like-this-item')}</div>`)).toEqual(['Film']);
+    });
+});
+
+describe('seasons in the details', () => {
+    const details = (picker: string, meta: string) => {
+        history.replaceState(null, '', '/browse?jbv=80100172');
+        document.body.innerHTML = `<div class="previewModal--container detail-modal" data-uia="modal-motion-container-DETAIL_MODAL">
+            <a data-uia="play-button" href="/watch/80100172">Abspielen</a>
+            <div class="previewModal--detailsMetadata">${meta}</div>${picker}</div>`;
+        const d = readCatalog(document).detail!;
+        return { seasons: d.seasons, season: d.season };
+    };
+
+    it('knows all seasons from the metadata while the menu is closed', () => {
+        expect(details('<button data-uia="dropdown-toggle">Staffel 2</button>', '2021 <span>3 Staffeln</span> HD')).toEqual({
+            seasons: ['Staffel 1', 'Staffel 2', 'Staffel 3'],
+            season: 1,
+        });
+        expect(details('<button data-uia="dropdown-toggle">Season 1</button>', '2019 2 Seasons')).toEqual({ seasons: ['Season 1', 'Season 2'], season: 0 });
+    });
+
+    it('takes the entries of an open menu, and a single season as it is', () => {
+        const menu = '<ul><li role="menuitem">Teil 1 (6 Folgen)</li><li role="menuitem">Teil 2 (4 Folgen)</li></ul>';
+        expect(details(`<button data-uia="dropdown-toggle">Teil 2</button>${menu}`, '2 Teile')).toEqual({
+            seasons: ['Teil 1 (6 Folgen)', 'Teil 2 (4 Folgen)'],
+            season: 1,
+        });
+        expect(details('<button data-uia="dropdown-toggle">Staffel 1</button>', '2020 8 Folgen')).toEqual({ seasons: ['Staffel 1'], season: 0 });
     });
 });
 

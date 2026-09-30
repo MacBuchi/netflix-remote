@@ -424,6 +424,13 @@ try {
         // "Nachtfalter" names two works; the year in the details picks the series.
         await phone.getByRole('link', { name: 'IMDb 8,7 von 10' }).waitFor({ timeout: 10_000 });
         await phone.getByText('Moth (2019–)').waitFor();
+        // Netflix's season menu only exists while open; the phone still offers both seasons and switches.
+        const season = phone.getByRole('combobox', { name: 'Staffel' });
+        assert.deepEqual(await season.locator('option').allTextContents(), ['Staffel 1', 'Staffel 2']);
+        await season.selectOption({ label: 'Staffel 2' });
+        await phone.getByRole('button', { name: /1\. Neubeginn/ }).waitFor({ timeout: 15_000 });
+        assert.equal(await netflix.locator('[data-uia="dropdown-toggle"]').textContent(), 'Staffel 2');
+        assert.equal(await phone.locator('.episodes li').count(), 2);
         if (SHOTS) await phone.screenshot({ path: join(SHOTS, 'remote-detail.png') });
         // … so "Zurück" returns to them.
         await phone.getByRole('button', { name: 'Zurück', exact: true }).click();

@@ -85,7 +85,7 @@
                         <a data-uia="play-button" href="/watch/${params.get('jbv')}">Abspielen</a>
                         <div class="previewModal--detailsMetadata"><span class="year">2021</span> 2 Staffeln</div>
                         <p class="preview-modal-synopsis">Im Wald verschwindet ein Kind.</p>
-                        <button data-uia="dropdown-toggle">Staffel 1</button>
+                        <div class="episodeSelector-dropdown"><button data-uia="dropdown-toggle" onclick="toggleSeasons(this)">Staffel 1</button></div>
                         <!-- The episodes arrive after title and synopsis, like on Netflix. -->
                         <div class="episodeSelector-container" id="episodes"></div>
                         <div class="moreLikeThis--wrapper"><h3>Mehr Titel wie dieser</h3><div class="moreLikeThis--container">
@@ -97,16 +97,35 @@
                                 </div>`).join('')}
                         </div></div>
                     </div>`), 1500);
-                setTimeout(() => (document.getElementById('episodes').innerHTML = `
-                        ${['Geheimnisse', 'Lügen', 'Vergangenheit'].map((t, i) => `
-                            <div class="titleCardList--container episode-item" data-uia="titleCard--container">
-                                <a href="/watch/9000${i + 1}"><img src="${img('Folge ' + (i + 1))}"></a>
-                                <div class="titleCard-title_index">${i + 1}</div>
-                                <div class="titleCard-title_text">${t}</div>
-                                <p class="titleCard-synopsis">Folge ${i + 1} von Nachtfalter.</p>
-                            </div>`).join('')}`), 4000);
+                setTimeout(() => showSeason(0), 4000);
             }
         }
+        // Episodes per season. Like Netflix's, the season menu only exists while it is open.
+        const SEASONS = [['Geheimnisse', 'Lügen', 'Vergangenheit'], ['Neubeginn', 'Echo']];
+        window.showSeason = (n) => {
+            document.getElementById('episodes').innerHTML = SEASONS[n].map((t, i) => `
+                <div class="titleCardList--container episode-item" data-uia="titleCard--container">
+                    <a href="/watch/9${n}00${i + 1}"><img src="${img('Folge ' + (i + 1))}"></a>
+                    <div class="titleCard-title_index">${i + 1}</div>
+                    <div class="titleCard-title_text">${t}</div>
+                    <p class="titleCard-synopsis">Staffel ${n + 1}, Folge ${i + 1} von Nachtfalter.</p>
+                </div>`).join('');
+        };
+        window.toggleSeasons = (button) => {
+            const open = document.querySelector('.episodeSelector-dropdown ul');
+            if (open) return open.remove();
+            button.insertAdjacentHTML('afterend', `<ul role="menu">${SEASONS.map((_, n) => `
+                <li role="menuitem" data-uia="dropdown-menu-item-s${n + 1}">Staffel ${n + 1} <span>(${SEASONS[n].length} Folgen)</span></li>`).join('')}</ul>`);
+            document.querySelectorAll('.episodeSelector-dropdown li').forEach((li, n) =>
+                li.addEventListener('click', () => {
+                    button.textContent = `Staffel ${n + 1}`;
+                    li.parentElement.remove();
+                    document.getElementById('episodes').innerHTML = '';
+                    setTimeout(() => showSeason(n), 700);
+                }),
+            );
+        };
+
         // Closing the details takes jbv out of the address, like Netflix does.
         window.closeDetails = () => {
             document.querySelector('[data-uia="modal-motion-container-DETAIL_MODAL"]')?.remove();
