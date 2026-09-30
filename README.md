@@ -66,7 +66,7 @@ der Extension das Update-Skript starten:
 
 | System | Skript | Hinweis |
 |---|---|---|
-| Mac | `update.command` doppelklicken | Beim ersten Mal Rechtsklick → „Öffnen“, weil das Skript nicht von Apple signiert ist. |
+| Mac | `update.command` doppelklicken | Das erste Mal blockt macOS das Skript, weil es nicht von Apple signiert ist. Entweder im Terminal `bash ` tippen, `update.sh` ins Fenster ziehen und Enter drücken, oder unter Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“ freigeben. Danach genügt der Doppelklick. |
 | Windows | `update.cmd` doppelklicken | SmartScreen fragt beim ersten Mal nach („Trotzdem ausführen“). |
 | Linux | `bash update.sh` | Braucht `curl` und `unzip`. |
 
