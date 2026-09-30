@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Couch Remote",
     "short_name": "Couch Remote",
-    "version": "2.2.15",
+    "version": "2.2.16",
     "description": "Das Handy als Fernbedienung für Netflix im Chrome: Player und Film-Browser. Kein offizielles Netflix-Produkt.",
     "minimum_chrome_version": "116",
     "permissions": ["offscreen", "storage", "scripting", "alarms"],
