@@ -14,7 +14,7 @@ import {
 import { CatalogView, Diagnose } from './catalog';
 import { RemoteClient, deviceName, type ClientSnapshot } from './client';
 import { Icon, type IconName } from './icons';
-import { activePeerId, consumePairingFromUrl, loadPairings, removePairing, setActive } from './pairings';
+import { activePeerId, consumePairingFromUrl, loadPairings, pairingDetails, pairingLabel, removePairing, setActive } from './pairings';
 import { extractOmdbKey, setOmdbKey, testOmdbKey, useOmdbKey, type RatingsError } from './ratings';
 import './style.css';
 
@@ -127,11 +127,12 @@ function App() {
         setActive(peerId);
         setActiveId(peerId);
     };
-    const forget = () => {
-        const list = removePairing(pairing.peerId);
+    const remove = (peerId: string) => {
+        const list = removePairing(peerId);
         setPairings(list);
-        setActiveId(list[0]?.peerId ?? null);
+        if (peerId === pairing.peerId) setActiveId(list[0]?.peerId ?? null);
     };
+    const forget = () => remove(pairing.peerId);
 
     return (
         <div class="app">
@@ -146,7 +147,14 @@ function App() {
             </main>
             {toast && <div class="toast">{toast}</div>}
             {settings && (
-                <Settings onClose={() => setSettings(false)} query={snap?.status === 'connected' ? query : null} />
+                <Settings
+                    onClose={() => setSettings(false)}
+                    query={snap?.status === 'connected' ? query : null}
+                    pairings={pairings}
+                    activeId={pairing.peerId}
+                    onSwitch={switchPc}
+                    onRemove={remove}
+                />
             )}
         </div>
     );
@@ -166,7 +174,7 @@ function Header({ pairings, active, snap, onSwitch, onSettings }: {
             {pairings.length > 1 ? (
                 <select value={active.peerId} onChange={(e) => onSwitch((e.target as HTMLSelectElement).value)}>
                     {pairings.map((p) => (
-                        <option value={p.peerId}>{p.peerId === active.peerId ? (snap?.pcName ?? p.name) : p.name}</option>
+                        <option value={p.peerId}>{pairingLabel(p.peerId === active.peerId && snap?.pcName ? { ...p, name: snap.pcName } : p, pairings)}</option>
                     ))}
                 </select>
             ) : (
@@ -225,10 +233,14 @@ const KEY_ERRORS: Record<RatingsError, string> = {
 };
 
 /** Ratings setup: each user brings an own free OMDb key; nothing is requested without one. */
-function Settings({ onClose, query }: {
+function Settings({ onClose, query, pairings, activeId, onSwitch, onRemove }: {
     onClose: () => void;
     /** Only while connected: lets the user see how the extension reads the current Netflix page. */
     query: ((cmd: CatalogCommand) => Promise<CommandResult>) | null;
+    pairings: Pairing[];
+    activeId: string;
+    onSwitch: (peerId: string) => void;
+    onRemove: (peerId: string) => void;
 }) {
     const saved = useOmdbKey();
     const [key, setKey] = useState(saved ?? '');
@@ -318,6 +330,31 @@ function Settings({ onClose, query }: {
                         Schlüssel entfernen
                     </button>
                 )}
+                <h2>Gekoppelte PCs</h2>
+                <ul class="pc-list">
+                    {pairings.map((p) => (
+                        <li key={p.peerId}>
+                            <div class="pc-text">
+                                <strong>{p.name}</strong>
+                                {p.peerId === activeId && <span class="pc-active"> · verbunden</span>}
+                                <span class="muted">{pairingDetails(p) || 'gekoppelt vor Version 2.2.13'}</span>
+                            </div>
+                            {p.peerId !== activeId && (
+                                <button class="btn small" onClick={() => (onSwitch(p.peerId), onClose())}>
+                                    Wechseln
+                                </button>
+                            )}
+                            <button
+                                class="btn small"
+                                aria-label={`${p.name} entfernen`}
+                                onClick={() => confirm(`„${p.name}“ entfernen? Zum erneuten Verbinden am PC den QR-Code scannen.`) && onRemove(p.peerId)}
+                            >
+                                Entfernen
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+                <p class="muted small">Eine neue Kopplung ersetzt ältere Einträge mit gleichem Namen auf demselben Browser und System.</p>
                 {query && (
                     <>
                         <h2>Hilfe bei Problemen</h2>
