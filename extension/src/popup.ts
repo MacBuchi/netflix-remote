@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { buildPairingUrl } from '../../shared/protocol';
+import { buildPairingUrl, type ExtensionUpdate } from '../../shared/protocol';
 import { DEFAULT_REMOTE_URL, type Config, type OffscreenMsg, type OffscreenStatus, type SwMsg } from './messages';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -50,6 +50,17 @@ async function pollStatus() {
     $('devices').textContent = s.devices.length ? `Verbunden: ${s.devices.join(', ')}` : '';
 }
 
+async function showUpdate() {
+    const update = await toSw<ExtensionUpdate | null>({ target: 'sw', type: 'getUpdate' }).catch(() => null);
+    if (!update) return;
+    $('update-title').textContent = `Version ${update.latest} verfügbar (installiert: ${update.current})`;
+    const zip = $<HTMLAnchorElement>('update-zip');
+    if (update.zip) zip.href = update.zip;
+    else zip.hidden = true;
+    $<HTMLAnchorElement>('update-notes').href = update.page;
+    $('update').hidden = false;
+}
+
 /** Saves all fields together, so saving one never resets another that is still being edited. */
 async function save() {
     const patch = {
@@ -62,7 +73,9 @@ async function save() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    $('version').textContent = `Version ${chrome.runtime.getManifest().version}`;
     await render(await toSw<Config>({ target: 'sw', type: 'getConfig' }));
+    void showUpdate();
     void pollStatus();
     setInterval(pollStatus, 1000);
 

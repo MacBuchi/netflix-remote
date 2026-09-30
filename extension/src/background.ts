@@ -3,6 +3,7 @@
 
 import { randomId, type Command, type CommandResult, type RemoteState } from '../../shared/protocol';
 import { DEFAULT_REMOTE_URL, type Config, type ContentMsg, type OffscreenMsg, type SwMsg, type TabState } from './messages';
+import { checkForUpdate, reloadIfReplaced, updateInfo } from './update';
 
 const NETFLIX_TABS = 'https://www.netflix.com/*';
 const NETFLIX_BROWSE = 'https://www.netflix.com/browse';
@@ -114,7 +115,7 @@ async function setClients(count: number) {
 
 async function forwardState(tab: chrome.tabs.Tab, tabState: TabState) {
     const win = await chrome.windows.get(tab.windowId).catch(() => undefined);
-    const state: RemoteState = { ...tabState, fullscreen: win?.state === 'fullscreen' };
+    const state: RemoteState = { ...tabState, fullscreen: win?.state === 'fullscreen', update: await updateInfo() };
     toOffscreen({ target: 'offscreen', type: 'state', state });
 }
 
@@ -122,7 +123,7 @@ async function refreshState() {
     if ((await getClients()) === 0) return;
     const tab = await targetTab();
     if (!tab?.id) {
-        toOffscreen({ target: 'offscreen', type: 'state', state: { page: 'none', location: '', fullscreen: false, player: null } });
+        toOffscreen({ target: 'offscreen', type: 'state', state: { page: 'none', location: '', fullscreen: false, player: null, update: await updateInfo() } });
         return;
     }
     await toContent(tab.id, { target: 'content', type: 'pushState' }).catch(() =>
@@ -174,6 +175,16 @@ async function setFullscreen(tab: chrome.tabs.Tab, on: boolean) {
     }
 }
 
+// ---- updates -------------------------------------------------------------------
+
+/** Checks for a new release and tells connected phones once one appears. */
+async function checkAndTell(force = false) {
+    const before = await updateInfo();
+    const after = await checkForUpdate(force);
+    if (after?.latest !== before?.latest) void refreshState();
+    return after;
+}
+
 // ---- wiring ----------------------------------------------------------------------
 
 chrome.runtime.onMessage.addListener((msg: SwMsg, sender, sendResponse) => {
@@ -185,6 +196,9 @@ chrome.runtime.onMessage.addListener((msg: SwMsg, sender, sendResponse) => {
     switch (msg.type) {
         case 'getConfig':
             return reply(getConfig());
+        case 'getUpdate':
+            // Opening the popup after running the update script reloads right away.
+            return reply(reloadIfReplaced().then((reloading) => (reloading ? null : checkAndTell(true))));
         case 'updateConfig':
             return reply(saveConfig(msg.patch));
         case 'resetPairing':
@@ -215,5 +229,10 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 chrome.runtime.onStartup.addListener(() => void ensureOffscreen());
 chrome.alarms.create('keepalive', { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener(() => void ensureOffscreen());
+chrome.alarms.onAlarm.addListener(async () => {
+    if (await reloadIfReplaced()) return;
+    void ensureOffscreen();
+    void checkAndTell(); // GitHub only every 12 hours
+});
 void ensureOffscreen();
+void checkForUpdate();

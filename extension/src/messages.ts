@@ -27,6 +27,8 @@ export interface TabState {
 
 export type SwMsg =
     | { target: 'sw'; type: 'getConfig' }
+    /** Popup: newer release on GitHub (checked now), null when up to date. */
+    | { target: 'sw'; type: 'getUpdate' }
     | { target: 'sw'; type: 'updateConfig'; patch: Partial<Pick<Config, 'pcName' | 'broker' | 'relay' | 'remoteUrl'>> }
     | { target: 'sw'; type: 'resetPairing' }
     | { target: 'sw'; type: 'command'; cmd: Command }

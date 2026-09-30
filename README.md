@@ -58,8 +58,25 @@ kein eigener Server.
 1. Unter [Releases](https://github.com/MacBuchi/netflix-remote/releases/latest) die ZIP-Datei herunterladen und entpacken.
 2. `chrome://extensions` öffnen → „Entwicklermodus“ einschalten → „Entpackte Erweiterung laden“ → den entpackten Ordner wählen.
 
-Für ein Update die neue ZIP in denselben Ordner entpacken und bei der Extension auf „Neu laden“ klicken.
-Die Kopplung bleibt dabei erhalten.
+### Updates
+
+Die Extension schaut etwa zweimal am Tag auf GitHub nach einer neuen Version. Gibt es eine, zeigt das Symbol
+„Neu“, das Popup nennt die Version, und die Handy-App blendet einen Hinweis ein. Zum Aktualisieren im Ordner
+der Extension das Update-Skript starten:
+
+| System | Skript | Hinweis |
+|---|---|---|
+| Mac | `update.command` doppelklicken | Beim ersten Mal Rechtsklick → „Öffnen“, weil das Skript nicht von Apple signiert ist. |
+| Windows | `update.cmd` doppelklicken | SmartScreen fragt beim ersten Mal nach („Trotzdem ausführen“). |
+| Linux | `bash update.sh` | Braucht `curl` und `unzip`. |
+
+Das Skript lädt das neueste Release und ersetzt die Dateien im Ordner. Die Extension bemerkt die neue Version
+und lädt sich selbst neu, innerhalb einer Minute oder sofort beim Öffnen des Popups. Ein Klick auf „Neu laden“
+in `chrome://extensions` ist nicht nötig. Ohne Skript geht es auch von Hand: die neue ZIP über den bisherigen
+Ordner entpacken. Die Kopplung bleibt in jedem Fall erhalten.
+
+Warum nicht ganz automatisch: Chrome aktualisiert entpackt geladene Extensions nicht selbst, und eine Extension
+darf ihre eigenen Dateien nicht ändern. Vollautomatische Updates gäbe es nur über den Chrome Web Store.
 
 Selbst bauen statt ZIP: `npm install && npm run build:ext`, dann den Ordner `extension/dist` laden.
 

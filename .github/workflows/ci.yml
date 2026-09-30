@@ -24,3 +24,34 @@ jobs:
         with:
           name: couch-remote-extension
           path: extension/dist
+
+  # The update scripts shipped in the extension folder, against the latest real release.
+  update-scripts:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Old installation
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/ext"
+          cp -R extension/static/. "$RUNNER_TEMP/ext/"
+          sed -i.bak 's/"version": "[^"]*"/"version": "0.0.1"/' "$RUNNER_TEMP/ext/manifest.json"
+      - name: update.sh (Linux, Mac)
+        if: runner.os != 'Windows'
+        run: bash "$RUNNER_TEMP/ext/update.sh" < /dev/null
+      - name: update.cmd (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: call "%RUNNER_TEMP%\ext\update.cmd"
+      - name: Now the latest release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh release view -R "$GITHUB_REPOSITORY" --json tagName -q .tagName | sed 's/^v//')
+          grep -q "\"version\": \"$latest\"" "$RUNNER_TEMP/ext/manifest.json"
+          test -f "$RUNNER_TEMP/ext/background.js"
+          echo "updated to $latest"

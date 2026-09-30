@@ -4,7 +4,7 @@
 //
 // Prerequisite: npm run build.  Run: npm run test:e2e
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, resolve } from 'node:path';
 import { Aedes } from 'aedes';
@@ -21,6 +21,9 @@ const MQTT_PORT = 9125;
 const SHOTS = process.env.E2E_SCREENSHOTS;
 
 const fakeNetflix = await readFile(join(import.meta.dirname, 'fake-netflix.html'), 'utf8');
+// The update test rewrites the manifest in the folder; restored at the end.
+const originalManifest = await readFile(join(EXT, 'manifest.json'), 'utf8');
+const installed = JSON.parse(originalManifest).version;
 
 /** Placeholder image for the fake page's CDN URLs: a colored poster titled after `t`, a text-free
  *  billboard background (`hero`) or a title logo (`logo`). */
@@ -81,6 +84,13 @@ const wikidata = (route) => {
     });
 };
 
+// Stand-in for GitHub's "latest release" answer; the update step publishes a newer one.
+let githubRelease = null;
+const github = (route) =>
+    githubRelease
+        ? route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(githubRelease) })
+        : route.fulfill({ status: 404, body: '{}' });
+
 // Never fetch the Netflix CDN (CI has internet, real requests would stall page loads); for screenshots draw placeholders.
 const cdn = (route) =>
     SHOTS ? route.fulfill({ contentType: 'image/svg+xml', body: posterSvg(route.request().url()) }) : route.abort();
@@ -108,14 +118,21 @@ aedes.on('publish', (packet) => {
     if (packet.topic.startsWith('nfr/')) largestRelayMessage = Math.max(largestRelayMessage, packet.payload.length);
 });
 
+// Lets context.route() see the extension service worker's requests (the GitHub update check).
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1';
 const webrtcArgs = ['--disable-features=WebRtcHideLocalIpsWithMdns'];
 // E2E_BROWSER=<path> runs the PC side in another Chromium browser (e.g. Opera) to check compatibility.
 const BROWSER = process.env.E2E_BROWSER;
+// Chromium gets the extension like "Load unpacked" does, so it can reload itself after an update
+// (extensions from the command line cannot); other browsers get it from the command line.
 const pc = await chromium.launchPersistentContext('', {
-    ...(BROWSER ? { executablePath: BROWSER } : { channel: 'chromium' }),
+    ...(BROWSER ? { executablePath: BROWSER } : { channel: 'chromium', ignoreDefaultArgs: ['--disable-extensions'] }),
     headless: !BROWSER,
-    args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, ...webrtcArgs],
+    args: BROWSER
+        ? [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, ...webrtcArgs]
+        : ['--enable-unsafe-extension-debugging', ...webrtcArgs],
 });
+const loadedId = BROWSER ? null : (await (await pc.browser().newBrowserCDPSession()).send('Extensions.loadUnpacked', { path: EXT })).id;
 const phoneBrowser = await chromium.launch({ args: webrtcArgs });
 // A phone in a network that blocks direct connections: WebRTC may only use (non-existent) proxies.
 const hotelPhoneBrowser = await chromium.launch({ args: ['--force-webrtc-ip-handling-policy=disable_non_proxied_udp'] });
@@ -147,9 +164,11 @@ const step = async (name, fn) => {
 try {
     await pc.route('https://www.netflix.com/**', (route) => route.fulfill({ contentType: 'text/html', body: fakeNetflix }));
     await pc.route('https://*.nflxso.net/**', cdn);
+    await pc.route('https://api.github.com/**', github);
 
-    const sw = pc.serviceWorkers()[0] ?? (await pc.waitForEvent('serviceworker'));
-    const extId = new URL(sw.url()).host;
+    const extId = loadedId ?? new URL((pc.serviceWorkers()[0] ?? (await pc.waitForEvent('serviceworker'))).url()).host;
+    const isExt = (w) => new URL(w.url()).host === extId;
+    const extensionWorker = async () => pc.serviceWorkers().find(isExt) ?? pc.waitForEvent('serviceworker', { predicate: isExt });
 
     let config;
     await step('configure extension via popup (local broker, local phone app)', async () => {
@@ -430,7 +449,7 @@ try {
             .waitFor({ timeout: 10_000 });
         // Tabs opened by the extension bypass the test's routing: depending on network access they show an
         // error page or the real netflix.com (which redirects to /login). Only check that a Netflix tab exists.
-        const urls = await sw.evaluate(async () => (await chrome.tabs.query({})).map((t) => t.pendingUrl || t.url));
+        const urls = await (await extensionWorker()).evaluate(async () => (await chrome.tabs.query({})).map((t) => t.pendingUrl || t.url));
         assert.ok(urls.some((u) => u && new URL(u).host === 'www.netflix.com'), urls.join(', '));
     });
 
@@ -440,10 +459,44 @@ try {
         await intruder.goto(pairingUrl.replace(`k=${config.key}`, 'k=ffffffffffffffffffffffffffffffff'));
         await intruder.getByText('Kopplung ungültig').first().waitFor({ timeout: 20_000 });
     });
+
+    await step('update: a newer GitHub release shows in the popup and on the phone', async () => {
+        githubRelease = {
+            tag_name: 'v99.0.0',
+            html_url: 'https://github.com/MacBuchi/netflix-remote/releases/tag/v99.0.0',
+            assets: [{ browser_download_url: 'https://github.com/MacBuchi/netflix-remote/releases/download/v99.0.0/couch-remote-v99.0.0.zip' }],
+        };
+        const popup = await pc.newPage();
+        await popup.goto(`chrome-extension://${extId}/popup.html`);
+        await popup.getByText(`Version 99.0.0 verfügbar (installiert: ${installed})`).waitFor({ timeout: 10_000 });
+        assert.match(await popup.locator('#update-zip').getAttribute('href'), /couch-remote-v99\.0\.0\.zip$/);
+        await popup.close();
+        const banner = phone.locator('.update-banner');
+        await banner.getByText('Extension-Update 99.0.0').waitFor({ timeout: 15_000 });
+        await banner.getByRole('button', { name: 'Hinweis ausblenden' }).click();
+        await banner.waitFor({ state: 'detached' });
+    });
+
+    if (!BROWSER) await step('update: new files in the folder make the extension reload itself, the phone reconnects', async () => {
+        const manifest = JSON.parse(originalManifest);
+        await writeFile(join(EXT, 'manifest.json'), JSON.stringify({ ...manifest, version: '99.0.0' }, null, 4));
+        // Opening the popup makes the extension look at once (otherwise within a minute).
+        const popup = await pc.newPage();
+        await popup.goto(`chrome-extension://${extId}/popup.html`).catch(() => {});
+        await popup.waitForEvent('close', { timeout: 10_000 });
+        const after = await pc.newPage();
+        await after.goto(`chrome-extension://${extId}/popup.html`);
+        assert.equal(await after.evaluate(() => chrome.runtime.getManifest().version), '99.0.0');
+        // The phone reconnects to the reloaded extension and works as before.
+        await phone.getByText('Test-Mac').waitFor();
+        await phone.locator('.dot.connected').waitFor({ timeout: 30_000 });
+        await phone.locator('.update-banner').waitFor({ state: 'detached' });
+    });
 } catch (e) {
     failed = true;
     console.error(e);
 } finally {
+    await writeFile(join(EXT, 'manifest.json'), originalManifest);
     await pc.close();
     await phoneBrowser.close();
     await hotelPhoneBrowser.close();

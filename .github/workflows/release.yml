@@ -54,4 +54,7 @@ jobs:
           body: |
             **Installation:** ZIP herunterladen und entpacken, `chrome://extensions` öffnen,
             Entwicklermodus einschalten, „Entpackte Erweiterung laden“ und den entpackten Ordner wählen.
-            **Update:** neuen Ordner an dieselbe Stelle entpacken und bei der Extension auf „Neu laden“ klicken.
+            **Update:** im Ordner der Extension das Update-Skript starten: `update.command` (Mac), `update.cmd` (Windows)
+            oder `bash update.sh` (Linux). Die Extension lädt sich danach selbst neu.
+            Ab Version 2.2.12; ältere Versionen einmal von Hand aktualisieren: ZIP über den bisherigen Ordner
+            entpacken und bei der Extension auf „Neu laden“ klicken.
